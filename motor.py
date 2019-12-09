@@ -88,6 +88,7 @@ class StepMotorTask:
             self._thread.join()
         self._running = True
         self._thread = threading.Thread(target=self._threadTask)
+        self._thread.start()
         return True
 
     # Stop running thread
@@ -105,79 +106,14 @@ class StepMotorTask:
         # :. velocity = k / dt
         # :. dt = k / velocity
         while self._running:
-            dt = self.k/self.velocity
-            if abs(dt)>0.01:
-                # If motor speed is too slow, stop motor for safty.
+            if self.velocity!=0:
+                dt = self.k/self.velocity
+                if abs(dt)>0.01:
+                    # If motor speed is too slow, stop motor for safty.
+                    self.motor.enable(False)
+                self.motor.forward(self.velocity)
+                time.sleep(dt)
+            else:
                 self.motor.enable(False)
-            time.sleep(dt)
-            self.motor.forward(self.velocity)
+                time.sleep(.01)
         self.motor.enable(False)
-
-
-if __name__ == "__main__":
-
-    # Version check
-    v = sys.version_info
-    print('==== [ INFORMATION ] ====')
-    print('Current python version : ', v[0], '.', v[1], '.', v[2], sep='')
-    print()
-
-    # You must set GPIO mode before ouse gpio-associate functions.
-    gpio.setmode(gpio.BCM)
-
-    # GPIO number(=BCM). (not BOARD)
-    pin_motor_l = [2, 3, 4, 17]
-    pin_motor_r = [18, 27, 22, 23]
-    phases = [[0], [1], [2], [3]]
-
-
-    try:
-        motorLeft = StepMotor(pin_motor_l,phases)
-        taskLeft = StepMotorTask(motorLeft)
-
-        while True:
-            try:
-
-                # Get command from commandline
-                command = input()
-                if command == 'exit' or command =='exit()' or command=='^c' or command=='^C':
-                    break
-            
-                # Parse command
-                args = input().split()[0]
-
-                command = args[0]
-                params = []
-                if len(args)>1:
-                    params = args[1:]
-
-                if command == 'E':
-                    taskLeft.start()
-                    print('Motor enabled')
-
-                elif command =='D':
-                    taskLeft.stop()
-                    print('Motor disabled')
-
-                elif command =='V':
-                    v = float(params[0])
-                    taskLeft.velocity = v
-                    print('Set motor speed to',v)
-
-                else:
-                    print('Got Unknown command :',command)
-
-            except Exception as e:
-                print('Wrong command :',e)
-
-    except  KeyboardInterrupt as e:
-        print('Program stopped by user interrupt')
-
-    except Exception as e:
-        print('Program stopped by exception :',e)
-
-    finally:
-        # You must cleanup gpio before end prcess for safty.
-        motorLeft.enable(False)
-        gpio.cleanup()
-        print('GPIO successfully cleaned up.')
