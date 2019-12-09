@@ -40,10 +40,8 @@ void delay_us(long int delay){
 		time_difference = gettime_now.tv_nsec - start_time;
 
         /*
-
         tv_nsec maximum value is 1000000000 = 1sec.
         therefore if we got negative time_difference, add 1000000000 to time differece.
-
         */
 
     	if (time_difference < 0) time_difference += 1000000000;
@@ -96,6 +94,13 @@ void printBit(int x){
     printf("\n");
 }
 
+/*
+
+쓰레드를 어떻게 만들면 좋을까?
+일단 쓰레드는 for문으로 관리될 텐데, 이건 반드시 메인 함수에서 단 한 번만 돌아가야 한다.
+
+*/
+
 int main(){
     printf("Program started.\n");
     GPIO gpio = (GPIO)get_gpio_mmap();
@@ -108,10 +113,8 @@ int main(){
     init();
 
     /*
-
     GPIO on-off wave max frequancy = 10kHz.
     This is because inaccuracy of delay_us.
-
     */
 
     int motor_l[4] = {2 , 3 , 4 , 17};
@@ -144,8 +147,10 @@ int main(){
 
     // Print bitmask and phase for check
     // for(int i =0;i<4;i++)printBit(phase_l[i]);
-    printBit(~mask_l);
-    printBit(~mask_r);
+    printf("Left motor gpio register bitmask");
+    printBit(mask_l);
+    printf("Right motor gpio register bitmask");
+    printBit(mask_r);
 
     for(int i =0;i<4;i++){
         MODE_OUT(motor_l[i]);
