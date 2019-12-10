@@ -1,3 +1,4 @@
+#define _GNU_SOURCE 
 #include <stdlib.h>  
 #include<stdio.h>
 #include<time.h>
@@ -6,6 +7,7 @@
 #include <sys/stat.h>    
 #include <fcntl.h>
 #include <sys/mman.h> 
+#include <sched.h>
 
 #define   GPIO_BASE      0x3F200000
 int* GPIO_SELECT0;
@@ -103,6 +105,19 @@ void printBit(int x){
 
 int main(){
     printf("Program started.\n");
+
+    const int isolatedCPU = 3;
+
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(isolatedCPU,&mask);
+    char result = sched_setaffinity(0,sizeof(mask),&mask);
+    if(result){
+        printf("Cannot assign process to core %d",isolatedCPU);
+        return 0;
+    }
+    printf("Process assigned to core %d",isolatedCPU);
+
     GPIO gpio = (GPIO)get_gpio_mmap();
 
     if(gpio==NULL){
@@ -134,6 +149,8 @@ int main(){
         pin2phase(motor_l,4,0x08|0x01)
     };
 
+
+
     int phase_r[8] = {
         pin2phase(motor_r,4,0x01),
         pin2phase(motor_r,4,0x01|0x04),
@@ -147,9 +164,9 @@ int main(){
 
     // Print bitmask and phase for check
     // for(int i =0;i<4;i++)printBit(phase_l[i]);
-    printf("Left motor gpio register bitmask");
+    printf("Left motor gpio register bitmask :\n");
     printBit(mask_l);
-    printf("Right motor gpio register bitmask");
+    printf("Right motor gpio register bitmask :\n");
     printBit(mask_r);
 
     for(int i =0;i<4;i++){
@@ -164,7 +181,7 @@ int main(){
 
     float v = 110;
 
-    for(int i =0;i<5000;i++){
+    for(int i =0;i<10000;i++){
         (*GPIO_CLR)=mask_l;
         (*GPIO_CLR)=mask_r;
         // (*GPIO_SET)=0;
@@ -173,9 +190,8 @@ int main(){
         // (*GPIO_SET)=0;
         float dt = 1000000/v;
         delay_us((int)dt);
-        if(v<2000)v+=dt/1000;
+        if(v<5000)v+=dt/1000;
     }
 
     init();
 }
-
