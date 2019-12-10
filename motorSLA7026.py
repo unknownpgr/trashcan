@@ -2,6 +2,35 @@ import RPi.GPIO as gpio
 import time
 from threading import Thread
 import math
+import os
+import sys
+
+v = sys.version_info
+print('======== [ INFORMATION ] ========')
+print('Current python version : ', v[0], '.', v[1], '.', v[2],sep='')
+print()
+
+CORE = 3
+
+# Core assign
+print('======== [ Core Assign ] ========')
+pid = os.getpid()
+print(f'Current PID = {pid}')
+is_core_assigned = os.system(f'taskset -p {2**CORE} {pid}')
+if is_core_assigned!=0:
+    print('Process core assign failed. exit process.')
+    exit()
+print(f'Process assigned to core {CORE} = affinity mask {2**CORE}')
+print()
+
+# Priority update
+print('======== [ Priority update ] ========')
+is_priority_updated = os.system(f'sudo renice -20 {pid}')
+if is_priority_updated!=0:
+    print('Process priority update failed. exit process.')
+    exit()
+print('Priority updated.')
+print()
 
 motor_l_pin = [2, 3, 4, 17]
 motor_r_pin = [18, 27, 22, 23]
@@ -121,13 +150,13 @@ try:
     MotorL = SLA7026Cotroller(motor_l_pin,phases)
     MotorR = SLA7026Cotroller(motor_r_pin,phases)
 
-    print(MotorL.getMinVelocity())
+    print('Minimum velocity =',MotorL.getMinVelocity())
 
     MotorL.start()
     MotorR.start()
     
     t = 0
-    for i in range(1000):
+    for i in range(3000):
         v = (math.sin(t*2)+1)*10
         MotorL.setVelocity(15+v)
         MotorR.setVelocity(15+v)
