@@ -4,12 +4,14 @@
 #include <sys/shm.h>
 #include "controlProtocol.h"
 
+#define ABS(x) (((x)>0)?(x):(-(x)))
+
 int main(){
     printf("Start controller.\n");
 
-    key_t shmKey = 8080;
-    int shmSize = 1024;
-    int shmid = shmget(shmKey,shmSize,IPC_CREAT|0666);
+    key_t shmKey  = 8080;
+    int   shmSize = 1024;
+    int   shmid   = shmget(shmKey,shmSize,IPC_CREAT|0666);
     char* sharedMemory;
 
     if(shmid==-1){
@@ -30,32 +32,53 @@ int main(){
     for(int i = 0;i<8;i++) printf("|%c",*(sharedMemory+i));
 
     printf("|\n");
+    // Get control object from shared memory.
     MOTOR_CONTROL* control = (MOTOR_CONTROL*)sharedMemory;
-    sleep(1);
-    printf("MotorAlive : %d\n",control->motorAlive);
+    control->run = 0;
 
-    control->run=1;
-    sleep(1);
-    printf("MotorAlive : %d\n",control->motorAlive);
+    float velocity = 0;
+    for(;;){
+        // Get velocity from user
+        printf("Enter velocity. enter -128 for exit. >> ");
+        scanf("%f",&velocity);
+        printf("\n");
+
+        // Clear buffer
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF) { }
+
+        if(velocity==-128.f)break;
+        if(ABS(velocity)<1){
+            control->run =0;
+            printf("Stop motor\n");
+        }
+        if(ABS(velocity)<2000){
+            control->run =1;
+            printf("Velocity is too slow.\n");
+            if(velocity<0){
+                velocity = -2000;
+                printf("Set velocity to -2000\n");
+            }else{
+                velocity = 2000;
+                printf("Set velocity to 2000\n");
+            }
+        }
+        control->velocity = velocity;
+        printf("Set velocity to %f",velocity);
+    }
 
     control->run=0;
-    sleep(1);
+    sleep(0.1);
     printf("MotorAlive : %d\n",control->motorAlive);
 
     control->exit=1;
-    sleep(1);
+    sleep(0.1);
     printf("MotorAlive : %d\n",control->motorAlive);
 
-    // if(-1 == (shmctl(shmid, IPC_STAT, 0)))
-    // {   
-    //     printf("Error");
-    //     perror("shmctl");
-    // }   
-
-    if(-1 == (shmctl(shmid, IPC_RMID, 0)))
-    {   
+    if(shmctl(shmid, IPC_RMID, 0)==-1){   
         printf("Failed to remove shared memory\n");
-    }   
+    }
+    printf("Shared memory removed.\n");
 
     printf("End control.\n");
 }

@@ -10,6 +10,7 @@
 #include <sched.h>
 #include <sys/shm.h>
 #include "controlProtocol.h"
+#define ABS(x) (((x)>0)?(x):(-(x)))
 
 // GPIO memory map base address
 #define   GPIO_BASE      0x3F200000
@@ -219,7 +220,8 @@ int main(){
 
     // Run loop for motor control
     float currentVelocity = 110;
-    for(int i =0;;i++){
+    char dir = 1;
+    for(int i =0;;i+=dir){
 
         // Check control object.
         if(control->exit)break;
@@ -236,9 +238,18 @@ int main(){
         // Calculate the velocity
         // v = 1000000/dt
         // :. dt = 1000000/v
-        float dt = 1000000/currentVelocity;
+        // minv = 200
+        // :. maxdt = 1000000/200
+        // :. maxdt = 10000/2 = 5000
+
+        float dt = 1000000/ABS(currentVelocity);
+        if(currentVelocity<0)dir=-1;
+        else dir=1;
+        if(dt>5000)dt=5000;
+
         delay_us((int)dt);
         if(currentVelocity<control->velocity)currentVelocity+=dt/1000;
+        if(currentVelocity>control->velocity)currentVelocity-=dt/1000;
     }
 
     //Initialize the GPIO, set the flag and exit process.
