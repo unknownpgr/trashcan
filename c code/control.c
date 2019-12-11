@@ -35,8 +35,9 @@ int main(){
     // Get control object from shared memory.
     MOTOR_CONTROL* control = (MOTOR_CONTROL*)sharedMemory;
     control->run = 0;
-
+    
     float velocity = 0;
+
     for(;;){
         // Get velocity from user
         printf("Enter velocity. enter -128 for exit. >> ");
@@ -45,7 +46,7 @@ int main(){
 
         // Clear buffer
         int c;
-        while ((c = getchar()) != '\n' && c != EOF) { }
+        while ((c = getchar()) != '\n' && c != EOF);
 
         if(velocity==-128.f)break;
         if(ABS(velocity)<1){
@@ -53,7 +54,6 @@ int main(){
             printf("Stop motor\n");
         }
         if(ABS(velocity)<2000){
-            control->run =1;
             printf("Velocity is too slow.\n");
             if(velocity<0){
                 velocity = -2000;
@@ -63,8 +63,9 @@ int main(){
                 printf("Set velocity to 2000\n");
             }
         }
+        control->run =1;
         control->velocity = velocity;
-        printf("Set velocity to %f",velocity);
+        printf("Set velocity to %f\n",velocity);
     }
 
     control->run=0;

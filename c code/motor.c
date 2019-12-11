@@ -210,12 +210,20 @@ int main(){
 
     // Get control object from shared memory.
     MOTOR_CONTROL* control = (MOTOR_CONTROL*)sharedMemory;
-    if(control->motorAlive||control->exit){
+
+    // Kill remaining process.
+    control->exit = 1;
+    sleep(0.1);
+    control->exit = 0;
+
+    // Initialize check
+    if(control->motorAlive){
         // control->motorAlive is set by motor process.
         // control->exit is 1 only after motor process exited.
         printf("Memory uninitialized.\n");
     }
 
+    // Set flag
     control->motorAlive = 1;
 
     // Run loop for motor control
