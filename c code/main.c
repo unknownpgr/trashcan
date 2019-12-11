@@ -220,7 +220,8 @@ int main(){
     // Run loop for motor control
     float currentVelocity = 110;
     for(int i =0;;i++){
-        // Check control.
+
+        // Check control object.
         if(control->exit)break;
         if(!control->run)continue;
 
@@ -232,7 +233,7 @@ int main(){
         (*GPIO_SET)=(mask_l&(~phase_l[i%8]));
         (*GPIO_SET)=(mask_r&(~phase_r[i%8]));
 
-        // Calculate velocity
+        // Calculate the velocity
         // v = 1000000/dt
         // :. dt = 1000000/v
         float dt = 1000000/currentVelocity;
@@ -240,6 +241,7 @@ int main(){
         if(currentVelocity<control->velocity)currentVelocity+=dt/1000;
     }
 
+    //Initialize the GPIO, set the flag and exit process.
     control->motorAlive=0;
     init();
     printf("Process successfully terminated.\n");
