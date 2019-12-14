@@ -1,4 +1,5 @@
 #! /bin/bash
+# bash script to compile the codes and run them.
 echo compile control;
 gcc -lm -o cont control.c;
 echo compile motor;
