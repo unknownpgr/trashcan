@@ -198,6 +198,7 @@ int main(){
     // ========================================================
 
     if(processCoreAssign()==-1) return -1;
+    LOG("Motor process was assigned to isolated core.");
 
     // ========================================================
     //     Get shared memory or create if it does not exists.
@@ -209,6 +210,7 @@ int main(){
         printf("Cannot get shared memory. err code : %d",control);
         return -1;
     }
+    LOG("Got the shared memory.");
 
     // ========================================================
     //     Initialzie GPIO and make bitmask for control.
@@ -217,12 +219,14 @@ int main(){
     // GPIO = gpio base address.
     init_gpio_mmap();
     if(GPIO==NULL){
-        printf("gpio memory map error.\n");
+        printf("GPIO memory map error.");
         return -1;
     }
+    LOG("GPIO memory has been mapped.")
 
     // Initialize all pins
     initGPIO();
+    LOG("GPIO initialized.")
 
     /*
     GPIO on-off wave max frequancy is about 10kHz
@@ -240,6 +244,7 @@ int main(){
     MOTOR motorL, motorR;
     initMotor(&motorL,pins_l,phases_l);
     initMotor(&motorR,pins_r,phases_r);
+    LOG("Motor object initialized.");
 
     // Print bitmask and phase for check
     #ifdef ENABLE_BITMASK
@@ -258,7 +263,7 @@ int main(){
 
     // Kill remaining process.
     control->exit = 1;
-    sleep(0.1);
+    delay_us(100000);
     control->exit = 0;
 
     // Initialize check
@@ -271,7 +276,7 @@ int main(){
     // Set flag
     control->motorAlive = 1;
 
-    LOG("Start loop");
+    LOG("Start motor control loop");
 
     INTERVAL threadL, threadR;
     threadL.interval = threadL.recent = 0;
