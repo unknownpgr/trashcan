@@ -29,7 +29,6 @@ if value is larger than abslim or smaller than -abslim, make it abslim or -absli
 #define ABS_LIM(value,abslim){if((value)>0&&(value)>(abslim))(value)=(abslim);if((value)<0&&(value)<-(abslim))(value)=-(abslim);}
 
 int main(){
-    
     LOG("Start controller.");
 
     // Get control object from shared memory.
