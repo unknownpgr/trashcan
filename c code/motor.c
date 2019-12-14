@@ -1,5 +1,6 @@
 #define _GNU_SOURCE 
 #include "controlProtocol.h"
+#include "log.h"
 
 #include <stdlib.h>  
 #include <stdio.h>
@@ -17,6 +18,8 @@ typedef unsigned char   bool;
 typedef unsigned char   byte;
 #define false   0
 #define true    1
+
+// #define ENABLE_BITMASK
 
 // Do nothing during given microsecond. use loop to prevent context switching.
 // Maximum delay = 0.01s = 10ms = 10000us
@@ -52,7 +55,9 @@ int processCoreAssign(){
     CPU_ZERO(&mask);                                        // Initialize cpu mask
     CPU_SET(isolatedCPU,&mask);                             // Set mask
 
-    return sched_setaffinity(0,sizeof(mask),&mask);        // Set core affinity of current process to masked core.
+    int core = sched_setaffinity(0,sizeof(mask),&mask);     // Set core affinity of current process to masked core.
+    if(core==-1) printf("Cannot assign core\n");
+    return core;
 }
 
 // GPIO memory map base address
@@ -77,12 +82,15 @@ void init_gpio_mmap(){
     int fd = open("/dev/mem", O_RDWR|O_SYNC);    
     if ( fd < 0 ){
         GPIO==NULL;
+        ERR("Cannot open /dev/mem");
         return;
     }
-
     // Memory mapping
     GPIO = (GPIO_t*)mmap(0, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fd, GPIO_BASE);        
-    if(GPIO == MAP_FAILED)GPIO == NULL;
+    if(GPIO == MAP_FAILED){
+        GPIO == NULL;
+        ERR("Cannot map memory");
+    }
 }
 
 typedef struct{
@@ -189,10 +197,7 @@ int main(){
     //     Assign process to isolated core.
     // ========================================================
 
-    if(processCoreAssign()==-1){
-        printf("Cannot assign core\n");
-        return -1;
-    }
+    if(processCoreAssign()==-1) return -1;
 
     // ========================================================
     //     Get shared memory or create if it does not exists.
@@ -201,7 +206,7 @@ int main(){
     // Get control object from shared memory.
     MOTOR_CONTROL* control = getControlStruct();
     if((int)control<0){
-        printf("Cannot get shared memory. err code : %d\n",control);
+        printf("Cannot get shared memory. err code : %d",control);
         return -1;
     }
 
@@ -238,18 +243,17 @@ int main(){
 
     // Print bitmask and phase for check
     #ifdef ENABLE_BITMASK
+        //Print phase bitmask
+        for(int i =0;i<4;i++)printBit(phase_l[i]);
 
-    for(int i =0;i<4;i++)printBit(phase_l[i]);
-
-    printf("Left motor gpio register bitmask :\n");
-    printBit(motorL.pinMask);
-    printf("Right motor gpio register bitmask :\n");
-    printBit(motorR.pinMask);
-    printf("Motor phase list : \n");
-    for(int i =0;i<8;i++)printBit(motorL.phaseMasks[i]);
-    printf("Motor phase list : \n");
-    for(int i =0;i<8;i++)printBit(motorR.phaseMasks[i]);
-
+        LOG("Left motor gpio register bitmask :");
+        printBit(motorL.pinMask);
+        LOG("Right motor gpio register bitmask :");
+        printBit(motorR.pinMask);
+        LOG("Motor phase list :");
+        for(int i =0;i<8;i++)printBit(motorL.phaseMasks[i]);
+        LOG("Motor phase list :");
+        for(int i =0;i<8;i++)printBit(motorR.phaseMasks[i]);
     #endif
 
     // Kill remaining process.
@@ -261,13 +265,13 @@ int main(){
     if(control->motorAlive){
         // control->motorAlive is set by motor process.
         // control->exit is 1 only after motor process exited.
-        printf("Memory uninitialized.\n");
+        ERR("Memory uninitialized.");
     }
 
     // Set flag
     control->motorAlive = 1;
 
-    printf("Start loop\n");
+    LOG("Start loop");
 
     INTERVAL threadL, threadR;
     threadL.interval = threadL.recent = 0;
@@ -297,7 +301,6 @@ int main(){
     //Initialize the GPIO, set the flag and exit process.
     control->motorAlive=0;
     initGPIO();
-    printf("Motor control process successfully terminated.\n");
-
+    LOG("Motor control process successfully terminated.");
     return 0;
 }

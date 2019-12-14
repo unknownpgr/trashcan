@@ -4,8 +4,10 @@
 #include <sys/shm.h>
 #include <math.h>
 #include "controlProtocol.h"
+#include "log.h"
 
 #define ABS(x) (((x)>0)?(x):(-(x)))
+#define BOOL(x) (x)?"True":"False"
 
 int sleep_ms(int ms){
     for(int i =0;i<ms;i++){
@@ -27,20 +29,19 @@ if value is larger than abslim or smaller than -abslim, make it abslim or -absli
 #define ABS_LIM(value,abslim){if((value)>0&&(value)>(abslim))(value)=(abslim);if((value)<0&&(value)<-(abslim))(value)=-(abslim);}
 
 int main(){
-    printf("Start controller.\n");
+    LOG("Start controller.");
 
     // Get control object from shared memory.
     MOTOR_CONTROL* control = getControlStruct();
     if((int)control<0){
-        printf("Cannot get shared memory. err code : %d\n",control);
+        ERR("Cannot get shared memory. err code : %d",control);
         return -1;
     }
 
-    printf("Start motor : ");
     // Get control object from shared memory.
     control->run = 0;
     sleep_ms(100);
-    printf("%d\n",control->motorAlive);
+    LOG("Motor alive : %s",BOOL(control->motorAlive));
     control->run = 1;
 
     float
@@ -48,7 +49,7 @@ int main(){
         dvl,dvr,    // Destination velocity
         dtl,dtr;    // Delta time (the reciprocal of current velocity)
 
-    for(float t = 0;t<10;t+=0.01f){
+    for(float t = 0;t<5;t+=0.01f){
         sleep_ms(10);
 
         #define VELO 1000
@@ -112,16 +113,18 @@ int main(){
         printf("Set velocity to %f\n",velocity);
     }
 
+    LOG("Turn off motor");
     control->run=0;
-    sleep_ms(100);
-    printf("MotorAlive : %d\n",control->motorAlive);
+    sleep_ms(10);
 
+    LOG("Exit motor process");
     control->exit=1;
     sleep_ms(100);
-    printf("MotorAlive : %d\n",control->motorAlive);
 
-    if(removeControlStruct(control)==-1)printf("Cannot remove shared memory.\n");
-    else printf("Shared memory removed.\n");
+    LOG("Motor alive : %s",BOOL(control->motorAlive));
 
-    printf("End control.\n");
+    if(removeControlStruct(control)==-1){ERR("Cannot remove shared memory.");}
+    else LOG("Shared memory removed.");
+
+    LOG("Exit control control.");
 }
