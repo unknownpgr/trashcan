@@ -97,7 +97,6 @@ int main(){
 
     initGPIO();
 
-
     if(removeControlStruct(control)==-1){ERR("Cannot remove shared memory.");}
     else LOG("Shared memory removed.");
 }

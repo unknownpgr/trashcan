@@ -242,8 +242,8 @@ int main(){
     */
 
     // Pins of motors. A,A',B,B' in order
-    int pins_l[4] = {2 , 3 , 4 , 17};
-    int pins_r[4] = {18, 27, 22, 23};
+    int pins_r[4] = {2 , 3 , 4 , 17};
+    int pins_l[4] = {23, 22, 27, 18};
 
     // Declare phases of each motor and convert it to bitmask
     int phases_l[8] = {0x01, 0x01|0x04, 0x04, 0x04|0x02, 0x02, 0x02|0x08, 0x08, 0x08|0x01};

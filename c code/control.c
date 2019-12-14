@@ -86,7 +86,7 @@ int main(){
         if(cvr!=0) dtr = 1000000000/cvr;
         else dtr = 0;
 
-        if(dtl==-1.f||dtr==-1.f)break;
+        if(cvl==-1.f||cvr==-1.f)break;
 
         // Calculate the velocity
         // v = 1000000/dt
