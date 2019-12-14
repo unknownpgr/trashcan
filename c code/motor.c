@@ -155,10 +155,9 @@ TICK(motor,dir){                                    // Used for real-time SLA702
     (motor).phase&=7;                               // motor = motor>7?0:motor
 }
 */
-
 #define TICK(motor,dir){(GPIO->SET[0])=(motor).pinMask;(GPIO->CLR[0])=(motor).phaseMasks[(motor).phase];if((dir)>0){(motor).phase++;}if((dir)<0){(motor).phase--;}(motor).phase&=0x07;}
 
-// Turn off all pins
+// Turn on all pins(because SLA7026 uses high as default.)
 #define STOP(motor) ((GPIO->SET[0])=(motor).pinMask)
 
 // Initialize = Clear all gpio pin.
@@ -207,10 +206,19 @@ int main(){
     // Get control object from shared memory.
     MOTOR_CONTROL* control = getControlStruct();
     if((int)control<0){
-        printf("Cannot get shared memory. err code : %d",control);
+        ERR("Cannot get shared memory. err code : %d",control);
         return -1;
     }
     LOG("Got the shared memory.");
+
+
+    // Initialize check
+    if(control->motorAlive){
+        ERR("Another motor process still alive.");
+        return -1;
+    }
+    // Set flag
+    control->motorAlive = 1;
 
     // ========================================================
     //     Initialzie GPIO and make bitmask for control.
@@ -261,21 +269,6 @@ int main(){
         for(int i =0;i<8;i++)printBit(motorR.phaseMasks[i]);
     #endif
 
-    // Kill remaining process.
-    control->exit = 1;
-    delay_us(100000);
-    control->exit = 0;
-
-    // Initialize check
-    if(control->motorAlive){
-        // control->motorAlive is set by motor process.
-        // control->exit is 1 only after motor process exited.
-        ERR("Memory uninitialized.");
-    }
-
-    // Set flag
-    control->motorAlive = 1;
-
     LOG("Start motor control loop");
 
     INTERVAL threadL, threadR;
@@ -294,13 +287,13 @@ int main(){
         threadL.interval = ABS(control->dtL);
         threadR.interval = ABS(control->dtR);
 
-        if(control->dtL!=0) RUN_TASK(threadL,
+        if(control->dtL!=0){RUN_TASK(threadL,
             TICK(motorL,control->dtL);
-        );
+        );}else STOP(motorL);
 
-        if(control->dtR!=0) RUN_TASK(threadR,
+        if(control->dtR!=0){RUN_TASK(threadR,
             TICK(motorR,control->dtR);
-        );
+        );}else STOP(motorR);
     }
 
     //Initialize the GPIO, set the flag and exit process.

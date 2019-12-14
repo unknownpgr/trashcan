@@ -22,6 +22,11 @@ typedef struct{
     bool    motorAlive;
     int     status;
 
+    // Server process sector
+    bool  serverAlive;
+    float userVL;
+    float userVR;
+
     // Shared memory information sector
     key_t   shmKey;     // Key to identify shared memory
     int     shmSize;    // Size of shared memory

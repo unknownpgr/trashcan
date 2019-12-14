@@ -28,6 +28,16 @@ if value is larger than abslim or smaller than -abslim, make it abslim or -absli
 */
 #define ABS_LIM(value,abslim){if((value)>0&&(value)>(abslim))(value)=(abslim);if((value)<0&&(value)<-(abslim))(value)=-(abslim);}
 
+int exec(char* program){
+    pid_t pid=fork();
+    if (pid==0) { /* child process */
+        execv(program,NULL);
+        ERR("Cannot execute %s",program);
+        return -1;
+    }
+    return 0;
+}
+
 int main(){
     LOG("Start controller.");
 
@@ -38,10 +48,18 @@ int main(){
         return -1;
     }
 
-    // Get control object from shared memory.
-    control->run = 0;
+    // Exit existing child processes
+    control->exit = 1;
     sleep_ms(100);
+    control->exit = 0;
+
+    // Start child process
+    exec("./comm.o");
+    exec("./motor.o");
+
+    // Check motor and server
     LOG("Motor alive : %s",BOOL(control->motorAlive));
+    LOG("Server alive : %s",BOOL(control->serverAlive));
     control->run = 1;
 
     float
@@ -49,13 +67,13 @@ int main(){
         dvl,dvr,    // Destination velocity
         dtl,dtr;    // Delta time (the reciprocal of current velocity)
 
-    for(float t = 0;t<5;t+=0.01f){
+    for(;;){
         sleep_ms(10);
 
         #define VELO 1000
 
-        dvl = sin(t*4)*VELO;
-        dvr = cos(t*4)*VELO;
+        dvl = control->userVL;
+        dvr = control->userVR;
 
         #define ACC 10000
         #define LIMDT 3000000
@@ -63,8 +81,12 @@ int main(){
         ACCELERATE(cvl,dvl,ACC,0.01f);
         ACCELERATE(cvr,dvr,ACC,0.01f);
 
-        dtl = 1000000000/cvl;
-        dtr = 1000000000/cvr;
+        if(cvl!=0) dtl = 1000000000/cvl;
+        else dtl = 0;
+        if(cvr!=0) dtr = 1000000000/cvr;
+        else dtr = 0;
+
+        if(dtl==-1.f||dtr==-1.f)break;
 
         // Calculate the velocity
         // v = 1000000/dt
@@ -84,11 +106,12 @@ int main(){
     control->run=0;
     sleep_ms(10);
 
-    LOG("Exit motor process");
+    LOG("Exit all subprocess");
     control->exit=1;
     sleep_ms(100);
 
     LOG("Motor alive : %s",BOOL(control->motorAlive));
+    LOG("Server alive : %s",BOOL(control->serverAlive));
 
     if(removeControlStruct(control)==-1){ERR("Cannot remove shared memory.");}
     else LOG("Shared memory removed.");

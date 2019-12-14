@@ -1,5 +1,1 @@
-c code/cont
-c code/motor
-c code/test
-c code/test.c
-c code/_test
+*.o

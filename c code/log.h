@@ -28,8 +28,10 @@
         printf(KBLU "[%02d:%02d:%02d.%03d]" KNRM, local->tm_hour, local->tm_min, local->tm_sec, now.tv_usec / 1000);
     }
 
-    #define LOG(...) {timestamp();printf(KGRN __VA_ARGS__);printf(KNRM "\n");}
-    #define ERR(...) {timestamp();printf(KRED __VA_ARGS__);printf(KNRM "\n");}
+    extern char *__progname;
+
+    #define LOG(...) {timestamp();printf("[%s]", __progname);printf(KGRN __VA_ARGS__);printf(KNRM "\n");}
+    #define ERR(...) {timestamp();printf("[%s]", __progname);printf(KRED __VA_ARGS__);printf(KNRM "\n");}
 #else
     #define LOG(...)
     #define ERR(...)

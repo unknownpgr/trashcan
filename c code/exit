@@ -1,0 +1,3 @@
+#! /bin/bash
+gcc -o exit.o exit.c;
+sudo sudo ./exit.o;
