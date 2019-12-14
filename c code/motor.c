@@ -288,7 +288,7 @@ int main(){
         if(!control->run){      // If the control is stop == !run
             STOP(motorL);       // Stop both motor
             STOP(motorR);
-            for(;!(control->run||control->exit);) delay_us(1000);   //Wait othre command.
+            for(;!(control->run||control->exit);g) delay_us(1000);   //Wait othre command.
         }
 
         threadL.interval = ABS(control->dtL);

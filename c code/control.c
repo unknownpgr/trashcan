@@ -80,39 +80,6 @@ int main(){
         control->dtR = (int)dtr;
     }
 
-
-    float velocity = 0;
-
-    for(;0;){
-        // Get velocity from user
-        printf("Enter velocity. enter -128 for exit. >> ");
-        scanf("%f",&velocity);
-        printf("\n");
-
-        // Clear buffer
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF);
-
-        if(velocity==-128.f)break;
-        if(ABS(velocity)<1){
-            control->run =0;
-            printf("Stop motor\n");
-        }
-        if(ABS(velocity)<2000){
-            printf("Velocity is too slow.\n");
-            if(velocity<0){
-                velocity = -2000;
-                printf("Set velocity to -2000\n");
-            }else{
-                velocity = 2000;
-                printf("Set velocity to 2000\n");
-            }
-        }
-        control->run =1;
-        // control->velocity = velocity;
-        printf("Set velocity to %f\n",velocity);
-    }
-
     LOG("Turn off motor");
     control->run=0;
     sleep_ms(10);
