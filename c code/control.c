@@ -30,11 +30,14 @@ int main(){
     // Print some bytes of memory to check if memory is initialized.
     printf("Memory check : \n");
     for(int i = 0;i<8;i++) printf("|%c",*(sharedMemory+i));
-
     printf("|\n");
+
+    printf("Start motor : ");
     // Get control object from shared memory.
     MOTOR_CONTROL* control = (MOTOR_CONTROL*)sharedMemory;
     control->run = 0;
+    sleep(0.1);
+    printf("%d\n",control->motorAlive);
     
     float velocity = 0;
 
