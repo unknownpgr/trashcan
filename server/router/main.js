@@ -6,4 +6,8 @@ module.exports = (app) => {
     app.get('/about', (req, res) => {
         res.render('about.html');
     });
+
+    app.get('/jquerytest', (req, res) => {
+        res.render('jquerytest.html');
+    });
 };
