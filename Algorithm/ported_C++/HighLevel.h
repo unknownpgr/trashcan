@@ -1,10 +1,12 @@
 #pragma once
+#include <memory>
+#define MapNodePtr std::shared_ptr<MapNode>
+
 namespace HighLevel
 {
-	enum Action { GoToNextNode, GoStraight, TurnRight, TurnLeft };
-	enum NodeType { EndOfLine, PlusCross, TCross, Corner, Straight };
-	enum Direction { North = 0, South = 1, East = 2, West = 3, None = -1 };
-
+	enum class Action { GoToNextNode, GoStraight, TurnRight, TurnLeft };
+	enum class NodeType { EndOfLine, PlusCross, TCross, Corner, Straight };
+	enum class Direction { North = 0, South = 1, East = 2, West = 3, None = -1 };
 
 	Direction ToOpposite(const Direction dir);
 	Direction TurnLeft(const Direction dir);
@@ -29,6 +31,8 @@ namespace HighLevel
 	{
 		bool North, South, East, West;
 
+		Junction();
+
 		bool& operator[](const Direction dir);
 		NodeType GetType() const;
 
@@ -39,37 +43,44 @@ namespace HighLevel
 	class MapNode
 	{
 	public:
-		int NodeNumber;
+		int NodeNumber = -1;
 		Point Position;
 		Point Error;
 		Junction Junc;
 
-		MapNode* North, * South, * East, * West;
-		double NorthDist, SouthDist, EastDist, WestDist;
+		MapNodePtr North, South, East, West;
+		double NorthDist = 0, SouthDist = 0, EastDist = 0, WestDist = 0;
 
-		MapNode*& operator[](const Direction dir);
+		~MapNode();
+
+		MapNodePtr& operator[](const Direction dir);
 
 		double GetDist(const Direction dir) const;
 		void SetDist(const Direction dir, const double value);
 
 		NodeType GetType() const;
-		Direction FindDirOf(MapNode* node) const;
+		Direction FindDirOf(MapNodePtr node) const;
 	};
 
 	struct Command
 	{
 		Action Act;
 		double Dist;
-		MapNode* NextExpect;
+		MapNodePtr NextExpect;
+
+		~Command();
+		Command(const Action& act, const double& dist, const MapNodePtr& next);
 	};
 
 	struct MapPosition
 	{
 	public:
-		MapNode* Node1;
-		MapNode* Node2;
-		double DivRatio1;
-		double DivRatio2;
+		MapNodePtr Node1;
+		MapNodePtr Node2;
+		double DivRatio1 = 0;
+		double DivRatio2 = 0;
+
+		~MapPosition();
 
 		double GetDistBetween() const;
 		double GetDist1() const;
@@ -80,10 +91,12 @@ namespace HighLevel
 
 	struct NodeDistPair
 	{
-		MapNode* Node;
+		MapNodePtr Node;
 		double Dist;
 
-		NodeDistPair(MapNode* node, double dist);
+		~NodeDistPair();
+		NodeDistPair(MapNodePtr node, double dist);
+
 		bool operator==(const NodeDistPair& other) const;
 	};
 
@@ -94,7 +107,13 @@ namespace HighLevel
 		double Cost;
 
 		DijkElement(int index, double cost);
+	};
 
-		static bool Compare(const DijkElement& d1, const DijkElement& d2);
+	struct DijkElementComparer
+	{
+		bool operator()(const DijkElement& d1, const DijkElement& d2) const
+		{
+			return d1.Cost > d2.Cost;
+		}
 	};
 }
