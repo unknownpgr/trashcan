@@ -9,6 +9,7 @@ typedef std::vector<NodeDistPair> NodeDistVec;
 typedef std::shared_ptr<NodeDistVec> NodeDistVecPtr;
 
 void Init();
+void DeleteNodeData();
 
 MapNodePtr ExploreMap(Junction currJunc, MapNodePtr prev, double errorAdded, Direction cameFrom);
 void ExploreDir(Direction dir, MapNodePtr currNode);
