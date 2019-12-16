@@ -1,6 +1,8 @@
+#define _CRTDBG_MAP_ALLOC
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <crtdbg.h>
 #include "RobotAlgorithm.h"
 
 std::string GetGraph1()
@@ -54,6 +56,7 @@ extern std::vector<MapNodePtr> nodeList;
 
 int main()
 {
+	//_crtBreakAlloc = 1064;
 	std::string graphStr = GetGraph3();
 	char way = 'O', notWay = '.';
 
@@ -133,6 +136,11 @@ int main()
 		std::cout << std::endl;
 
 	}
+
+	std::queue<Command>().swap(commands);
+	DeleteNodeData();
+
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	return 0;
 }
