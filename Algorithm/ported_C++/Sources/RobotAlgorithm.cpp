@@ -28,6 +28,27 @@ void Init()
 		throw "There is only one node. Unable to set robotPos.";
 }
 
+void DeleteNodeData()
+{
+	for (int i = 0; i < nodeConnection.size(); ++i)
+	{
+		nodeConnection[i]->clear();
+		nodeConnection[i].reset();
+	}
+	nodeConnection.clear();
+
+	for (int i = 0; i < nodeList.size(); ++i)
+	{
+		nodeList[i]->North.reset();
+		nodeList[i]->South.reset();
+		nodeList[i]->East.reset();
+		nodeList[i]->West.reset();
+
+		nodeList[i].reset();
+	}
+	nodeList.clear();
+}
+
 MapNodePtr ExploreMap(Junction currJunc, MapNodePtr prev, double errorAdded, Direction cameFrom)
 {
 	Point currPoint = LowLevel::GetPos();
