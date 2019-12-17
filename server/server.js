@@ -19,13 +19,15 @@ app.listen(3000, () => {
 app.use(express.static('public'));
 
 com.init(__dirname + '/data', __dirname + '/data');
-var attr = { interval: 1000, maxTryCount: 10 };
+var attr = { interval: 500, maxTryCount: 10 };
 
-com.receiveJSONData('test.json', attr, (err, json) => {
+com.receiveJSONData('map.json', attr, (err, json) => {
     if (err) {
         console.log("can't load file");
     }
     else {
-        console.log(json);
+        com.sendJSONData('map2.json', json, err => {
+            if (err) console.log('error has been occured!');
+        })
     }
 });
