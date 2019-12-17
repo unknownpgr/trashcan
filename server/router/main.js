@@ -1,10 +1,6 @@
 module.exports = (app) => {
     app.get('/', (req, res) => {
-        res.render('index.html');
-    });
-
-    app.get('/about', (req, res) => {
-        res.render('about.html');
+        res.render('map.html');
     });
 
     app.get('/jquerytest', (req, res) => {
