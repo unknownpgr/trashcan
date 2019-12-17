@@ -89,6 +89,9 @@ int main()
 			<< node->Error.X << ", " << node->Error.Y << ")" << std::endl;
 	}
 
+
+	std::cout << std::endl << *(GetNodeJSON()) << std::endl;
+
 	int node1Index, node2Index;
 	double div1, div2;
 	std::cout << "최단 거리를 탐색할 위치를 입력하세요. (입력형식: {node1} {node2} {ratio1} {ratio2}) : ";

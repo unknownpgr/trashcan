@@ -10,6 +10,7 @@ typedef std::shared_ptr<NodeDistVec> NodeDistVecPtr;
 
 void Init();
 void DeleteNodeData();
+std::shared_ptr<std::string> GetNodeJSON();
 
 MapNodePtr ExploreMap(Junction currJunc, MapNodePtr prev, double errorAdded, Direction cameFrom);
 void ExploreDir(Direction dir, MapNodePtr currNode);
