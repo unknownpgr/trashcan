@@ -6,9 +6,6 @@ import numpy as np
 import spidev
 import RPi.GPIO as gpio
 
-# 센서 제어를 어떻게 하면 좋은가?
-# 먼저 센서 값을 받아올 수 있도록 하자.
-
 class ADC:
     def __init__(self):
         self._spi = spidev.SpiDev()
