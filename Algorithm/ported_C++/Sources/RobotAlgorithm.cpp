@@ -1,6 +1,7 @@
 #include "RobotAlgorithm.h"
 #include <algorithm>
 #include <stack>
+#include <string>
 
 const double ERROR_RATE = 0.05;
 const double DIST_INF = std::numeric_limits<double>::max() / 2 - 1;
@@ -47,6 +48,46 @@ void DeleteNodeData()
 		nodeList[i].reset();
 	}
 	nodeList.clear();
+}
+
+std::shared_ptr<std::string> GetNodeJSON()
+{
+	std::shared_ptr<std::string> result(new std::string());
+	*result += "[\n";
+
+	for (int i = 0; i < nodeList.size(); ++i)
+	{
+		*result += "\t{\"number\":\"";
+		*result += std::to_string(nodeList[i]->NodeNumber);
+		*result += "\",";
+
+		*result += "\"position\":\"(";
+		*result += std::to_string(nodeList[i]->Position.X);
+		*result += ",";
+		*result += std::to_string(nodeList[i]->Position.Y);
+		*result += ")\",";
+		*result += "\"connected\":[";
+
+		bool written = false;
+		for (NodeDistPair ndp : *(nodeConnection[i]))
+		{
+			if (written)
+				*result += ",";
+			*result += "\"";
+			*result += std::to_string(ndp.Node->NodeNumber);
+			*result += "\"";
+			written = true;
+		}
+
+		*result += "]}";
+
+		if (i != nodeList.size() - 1)
+			*result += ",\n";
+	}
+
+	*result += "\n]";
+
+	return result;
 }
 
 MapNodePtr ExploreMap(Junction currJunc, MapNodePtr prev, double errorAdded, Direction cameFrom)
