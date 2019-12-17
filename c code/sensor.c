@@ -1,6 +1,7 @@
 #include "bcm2835.h"
 #include <stdio.h>
 #include "log.h"
+#include "gpio.h"
 #include <unistd.h>
 
 int sleep_ms(int ms){
@@ -16,6 +17,9 @@ int getSensorData(int channel){
 }
 
 int main(){
+
+    initGpioMmap();
+
     if(!bcm2835_init()){
         ERR("bcm283 initialization failed.");
         return -1;

@@ -1,3 +1,7 @@
+#ifndef _GPIO_H
+#define _GPIO_H
+
+#include <fcntl.h>
 #include <sys/mman.h>
 
 // GPIO memory map base address
@@ -17,7 +21,9 @@ typedef struct{
 GPIO_t* GPIO = NULL;
 
 // Initialize the GPIO memory map 
-void init_gpio_mmap(){
+void initGpioMmap(){
+    if(GPIO!=NULL)return;
+
     // Open file
     int fd = open("/dev/mem", O_RDWR|O_SYNC);    
     if ( fd < 0 ){
@@ -77,3 +83,5 @@ void phaseToMask(int* pins, int pinLen, int* phase, int phaseLen){
         phase[i] = mask;
     }
 }
+
+#endif

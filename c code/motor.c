@@ -4,13 +4,12 @@
 
 #include "gpio.h"
 
-#include <stdlib.h>  
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
 
 #include <sys/stat.h>    
-#include <fcntl.h>
 #include <sched.h>
 #define ABS(x) (((x)>0)?(x):(-(x)))
 
@@ -149,7 +148,7 @@ int main(){
     // ========================================================
 
     // GPIO = gpio base address.
-    init_gpio_mmap();
+    initGpioMmap();
     if(GPIO==NULL){
         printf("GPIO memory map error.");
         return -1;
