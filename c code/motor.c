@@ -2,6 +2,8 @@
 #include "controlProtocol.h"
 #include "log.h"
 
+#include "gpio.h"
+
 #include <stdlib.h>  
 #include <stdio.h>
 #include <time.h>
@@ -9,7 +11,6 @@
 
 #include <sys/stat.h>    
 #include <fcntl.h>
-#include <sys/mman.h> 
 #include <sched.h>
 #define ABS(x) (((x)>0)?(x):(-(x)))
 
@@ -106,6 +107,16 @@ typedef struct{
 #define SET(pin) ((GPIO->SET[0])|=(1<<(pin)))  // Set given gpio pin(If mode is input, do nothing.)
 #define CLR(pin) ((GPIO->CLR[0])|=(1<<(pin)))  // Clear given gpio pin(If mode is input, do nothing.)
 
+// Initialize = Clear all gpio pin.
+// Turn of all gpio and set mode to in.
+void initGPIO(){
+    for(int i=0;i<28;i++){
+        MODE_OUT(i);
+        CLR(i);
+        MODE_IN(i);
+    }
+}
+
 // Get 32bit length bitmask that bits[0<=i<len]th bits are 1 and the others are 0.
 int getMask(int*bits, int len){
     int mask = 0;
@@ -159,16 +170,6 @@ TICK(motor,dir){                                    // Used for real-time SLA702
 
 // Turn on all pins(because SLA7026 uses high as default.)
 #define STOP(motor) ((GPIO->SET[0])=(motor).pinMask)
-
-// Initialize = Clear all gpio pin.
-// Turn of all gpio and set mode to in.
-void initGPIO(){
-    for(int i=0;i<28;i++){
-        MODE_OUT(i);
-        CLR(i);
-        MODE_IN(i);
-    }
-}
 
 //Print bit of int.
 void printBit(int x){

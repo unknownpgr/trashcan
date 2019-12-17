@@ -16,10 +16,13 @@ typedef struct{
     long dtL;   // Left wheel velocity
     long dtR;   // Right wheel velocity
 
+    // Reserved
     int command;
 
     // Motor process sector (set from motor process)
     bool    motorAlive;
+
+    // Reserved
     int     status;
 
     // Server process sector
