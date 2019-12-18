@@ -18,23 +18,22 @@ int getSensorData(int channel){
 
 // Error : 5,6,13 pin is never changed.
 int pins[6] = {5,6,12,13,19,16};
+float sensorWeights[6] = {-5.f, -3.f, -1.f, 1.f, 3.f, 5.f};
 int mask = 0x00;
 int time_us = 1000;
 
 void initPins(){
     for(int i =0 ;i<6;i++){
-        MODE_OUT(pins[i]);
-        CLR(pins[i]);
+        bcm2835_gpio_fsel(pins[i],BCM2835_GPIO_FSEL_OUTP);
+        bcm2835_gpio_clr(pins[i]);
     }
 }
 
 int getIRData(int channel){
-    initPins();
-    GPIO->CLR[0]|=mask;
-    GPIO->SET[0]|=(0x01<<(pins[channel]));
-    sleep_ms(200);
+    bcm2835_gpio_set(pins[channel]);
+    usleep(100);
     int data = getSensorData(channel);
-    GPIO->CLR[0]|=mask;
+    bcm2835_gpio_clr(pins[channel]);
     return data;
 }
 
@@ -46,9 +45,6 @@ void printBit(int x){
 }
 
 int main(){
-    initGpioMmap();
-    initPins();
-    // return 0;
     mask = getMask(pins,6);
     printBit(mask);
 
@@ -61,14 +57,21 @@ int main(){
         ERR("Are you running as root?.");
         return -1;
     }
+    bcm2835_spi_set_speed_hz(15600000);
     LOG("SPI successfully opened.");
 
     initPins();
 
-    for(int i = 0;i<1000;i++){
+    for(int i = 0;i<100000;i++){
+        float valueSum = 0;
+        float weightedSum = 0;
         for(int j = 0;j<6;j++){
-            getIRData(j);
+            float weight = getIRData(j);
+            valueSum += weight;
+            weightedSum += weight*sensorWeights[j];
         }
+        float position = weightedSum/valueSum;
+        printf("%f\n",position);
     }
 
     bcm2835_spi_end();
