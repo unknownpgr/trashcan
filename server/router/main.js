@@ -1,9 +1,9 @@
 module.exports = (app) => {
     app.get('/', (req, res) => {
-        res.render('map.html');
+        res.render('index.html');
     });
 
-    app.get('/jquerytest', (req, res) => {
-        res.render('jquerytest.html');
+    app.get('/index', (req, res) => {
+        res.render('index.html');
     });
 };
