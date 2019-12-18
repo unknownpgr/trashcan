@@ -173,11 +173,17 @@ int main(){
         calibration(&sensorSetting);
         saveSetting(&sensorSetting);
     }
+    LOG("Calibration data loaded.");
 
     // Load shared memory control structure
     SHM_CONTROL* control = getControlStruct();
+    if((int)control<0){
+        ERR("Cannot get shared memory. err code : %d",control);
+        return -1;
+    }
 
     // Start sensing
+    float position;
     for(int i = 0;!(control->exit);i++){
         float valueSum = 0;
         float weightedSum = 0;
@@ -185,10 +191,20 @@ int main(){
             float value = getCalibratedIRData(j, &sensorSetting);
             valueSum += value;
             weightedSum += value*sensorWeights[j];
-            control->sensorValue[j];
+            control->sensorValue[j] = value;
         }
-        float position = weightedSum/valueSum;
-        control->position = position;
+   
+        if(valueSum>0.1f){
+            position = weightedSum/valueSum;
+            control->position = position;
+            control->lineout  = 0;
+        }else{
+            control->position = 0;
+            control->lineout  = 1;
+        }
+        if(!(i%1000)){
+            printf("%f %f %f %d\n",valueSum,weightedSum,control->position,control->lineout);
+        }
     }
 
     bcm2835_spi_end();

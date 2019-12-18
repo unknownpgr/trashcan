@@ -41,6 +41,7 @@ typedef struct{
     float sensorValue[8];
     char  sensorState;
     float position;
+    bool  lineout;
 
     /*============================================================*/
     // Shared memory information sector
