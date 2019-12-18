@@ -1,16 +1,5 @@
 var fs = require('fs');
 
-var reqd;
-var recd;
-
-/* 
- * before use this module, you have to call init function to initalize directory.
-*/
-function init(reqDir, recDir) {
-    reqd = reqDir;
-    recd = recDir;
-}
-
 /* 
  * receving file and parse to json with retring additional function
  * name: file name to receive
@@ -22,6 +11,7 @@ var isReceiving = false;
 function receiveJSONData(name, attr, callback) {
     // receiving flag for preventing to recall function while this function is running.
     if (isReceiving == true) {
+        callback(true, null);
         return;
     }
     isReceiving = true;
@@ -30,7 +20,7 @@ function receiveJSONData(name, attr, callback) {
     var tryCount = 0;       // retry count for errors
 
     function readFileFunction() {
-        fs.readFile(recd + '/' + name, 'utf8', (err, data) => {
+        fs.readFile(name, 'utf8', (err, data) => {
             if (err) {
                 // try to reading file up to maxTryCount
                 tryCount++;
@@ -38,6 +28,7 @@ function receiveJSONData(name, attr, callback) {
                     // error callback
                     callback(true, null);
                     clearInterval(tmrId);
+                    isReceiving = false;
                 }
                 return;
             }
@@ -52,13 +43,15 @@ function receiveJSONData(name, attr, callback) {
             }
 
             // data callback
-            callback(cbErr, jsonData);
+            callback(cbErr,jsonData);
             clearInterval(tmrId);
 
             // delete file
             fs.unlink(recd + '/' + name, err => {
                 if (err) throw err;
             });
+
+            isReceiving = false;
         });    
     }
 
@@ -84,7 +77,7 @@ function sendJSONData(name, json, callback) {
         return;
     }
 
-    fs.writeFile(reqd + '/' + name, data, 'utf8', err => {
+    fs.writeFile(name, data, 'utf8', err => {
         if (err) cberr = true;
     });
 
@@ -99,14 +92,13 @@ function sendJSONData(name, json, callback) {
 function sendStringData(name, str, callback) {
     var cberr = false;
 
-    fs.writeFile(reqd + '/' + name, str, 'utf8', err => {
+    fs.writeFile(name, str, 'utf8', err => {
         if (err) cberr = true;
     });
 
     callback(cberr);
 }
 
-module.exports.init = init;
 module.exports.receiveJSONData = receiveJSONData;
 module.exports.sendJSONData = sendJSONData;
 module.exports.sendStringData = sendStringData;
