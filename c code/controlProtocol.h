@@ -24,8 +24,11 @@ typedef struct{
     /*============================================================*/
     // Motor process sector (set from motor process)
     /*============================================================*/
-    bool    motorAlive;
-    int     status;     // Reserved
+    bool            motorAlive;
+    int             status;     // Reserved
+    long long int   tickL;
+    long long int   tickR;
+    long long int   tickC;
 
     /*============================================================*/
     // Server process sector
