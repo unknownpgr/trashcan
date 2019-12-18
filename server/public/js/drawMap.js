@@ -13,7 +13,7 @@ function initView(view, attr) {
 
 // draw map
 function drawMap(view, mapData) {
-    var width = view.offsetWidth - view.padding;
+    var width = view.offsetWidth;
     var height = view.offsetHeight;
     var json = JSON.parse(mapData);
 
@@ -59,7 +59,7 @@ function createVertex(view, num, size, pos) {
     // position
     vertex.style.position = 'absolute';
     vertex.style.left = (pos.x - size.w / 2) + 'px';
-    vertex.style.top = (pos.y - size.h / 2) + 'px';
+    vertex.style.top = (pos.y*1 - size.h / 2) + 'px';
 
     // color
     vertex.style.backgroundColor = vertexBackgroundColor;
