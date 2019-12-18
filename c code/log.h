@@ -20,6 +20,7 @@
     #define KCYN  "\x1B[36m"
     #define KWHT  "\x1B[37m"
 
+    // Print timestamp
     void timestamp(){
         struct timeval  now;
         struct tm*      local;
@@ -28,6 +29,7 @@
         printf(KBLU "[%02d:%02d:%02d.%03d]" KNRM, local->tm_hour, local->tm_min, local->tm_sec, now.tv_usec / 1000);
     }
 
+    // Program name of 
     extern char *__progname;
 
     #define LOG(...) {timestamp();printf("[%s]", __progname);printf(KGRN __VA_ARGS__);printf(KNRM "\n");}

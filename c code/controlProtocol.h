@@ -7,7 +7,9 @@
 #define bool unsigned char
 
 typedef struct{
+    /*============================================================*/
     // Control process sector (set from control processor)
+    /*============================================================*/
     bool run;   // Continue control loop if 0
     bool exit;  // Exit control loop if 1, therefore exit process soon.
 
@@ -15,22 +17,34 @@ typedef struct{
     // If zero, stop wheel.
     long dtL;   // Left wheel velocity
     long dtR;   // Right wheel velocity
-
+    
     // Reserved
     int command;
 
+    /*============================================================*/
     // Motor process sector (set from motor process)
+    /*============================================================*/
     bool    motorAlive;
+    int     status;     // Reserved
 
-    // Reserved
-    int     status;
-
+    /*============================================================*/
     // Server process sector
+    /*============================================================*/
     bool  serverAlive;
     float userVL;
     float userVR;
 
+    /*============================================================*/
+    // Sensor process sector
+    /*============================================================*/
+
+    float sensorValue[8];
+    char  sensorState;
+    float position;
+
+    /*============================================================*/
     // Shared memory information sector
+    /*============================================================*/
     key_t   shmKey;     // Key to identify shared memory
     int     shmSize;    // Size of shared memory
     int     shmID;      // ID of shared memory given by kernel. used to control or remove shared memory
