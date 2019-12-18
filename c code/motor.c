@@ -11,13 +11,15 @@
 
 #include <sys/stat.h>    
 #include <sched.h>
-#define ABS(x) (((x)>0)?(x):(-(x)))
+#define ABS(x)  (((x)>0)?(x):(-(x)))
+#define SIGN(x) (((x)>0)?1:(((x)<0)?(-1):0))
 
 // Typedef and define
 typedef unsigned char   bool;
 typedef unsigned char   byte;
 #define false   0
 #define true    1
+#define NANOSEC     1000000000
 
 // #define ENABLE_BITMASK
 
@@ -89,12 +91,11 @@ void initMotor(MOTOR* motor, int pins[4], int phases[8]){
 TICK(motor,dir){                                    // Used for real-time SLA7026 motor driver control
     (*GPIO_SET)=(motor).pinMask;                    // Turn on all pins
     (*GPIO_CLR)=(motor).phaseMasks[(motor).phase];  // Turn off selected pins and increase phase
-    if((dir)>0){(motor).phase++;}                   // Increase or decrease phase index according to direction
-    if((dir)<0){(motor).phase--;}
+    (motor).phase+=SIGN(dir)                        // Increase or decrease phase index according to direction
     (motor).phase&=7;                               // motor = motor>7?0:motor
 }
 */
-#define TICK(motor,dir){(GPIO->SET[0])=(motor).pinMask;(GPIO->CLR[0])=(motor).phaseMasks[(motor).phase];if((dir)>0){(motor).phase++;}if((dir)<0){(motor).phase--;}(motor).phase&=0x07;}
+#define TICK(motor,dir){(GPIO->SET[0])=(motor).pinMask;(GPIO->CLR[0])=(motor).phaseMasks[(motor).phase];(motor).phase+=SIGN(dir);(motor).phase&=0x07;}
 
 // Turn on all pins(because SLA7026 uses high as default.)
 #define STOP(motor) ((GPIO->SET[0])=(motor).pinMask)
@@ -118,7 +119,7 @@ typedef struct{
 /*
 RUN_TASK : run given task 
 */
-#define RUN_TASK(thread,task) {static long __td;__td=__time.tv_nsec-(thread).recent;__td = (__td<0)?(__td+1000000000):(__td);if(__td>(thread).interval){(thread).recent= __time.tv_nsec;{task;}}}
+#define RUN_TASK(thread,task) {static long __td;__td=__time.tv_nsec-(thread).recent;__td = (__td<0)?(__td+1000000000):(__td);if(__td>(thread).interval){(thread).recent+=(thread).interval;if((thread).recent>NANOSEC)(thread).recent-=NANOSEC;{task;}}}
 
 int main(){
     // ========================================================
@@ -221,14 +222,14 @@ int main(){
 
         if(control->dtL!=0){RUN_TASK(threadL,
             TICK(motorL,control->dtL);
-            control->tickL++;
-            control->tickC++;
+            control->tickL+=SIGN(control->dtL);
+            control->tickC+=SIGN(control->dtL);
         );}else STOP(motorL);
 
         if(control->dtR!=0){RUN_TASK(threadR,
             TICK(motorR,control->dtR);
-            control->tickR++;
-            control->tickC++;
+            control->tickR+=SIGN(control->dtL);
+            control->tickC+=SIGN(control->dtL);
         );}else STOP(motorR);
     }
 

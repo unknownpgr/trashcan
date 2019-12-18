@@ -15,8 +15,8 @@ typedef struct{
 
     // dt(=1/velocity) of each velocity. if positive, clockwise. if negative, anticlockwise.
     // If zero, stop wheel.
-    long dtL;   // Left wheel velocity
-    long dtR;   // Right wheel velocity
+    int64_t dtL;   // Left wheel velocity
+    int64_t dtR;   // Right wheel velocity
     
     // Reserved
     int command;
@@ -24,11 +24,11 @@ typedef struct{
     /*============================================================*/
     // Motor process sector (set from motor process)
     /*============================================================*/
-    bool            motorAlive;
-    int             status;     // Reserved
-    long long int   tickL;
-    long long int   tickR;
-    long long int   tickC;
+    bool    motorAlive;
+    int     status;     // Reserved
+    int64_t tickL;
+    int64_t tickR;
+    int64_t tickC;
 
     /*============================================================*/
     // Server process sector
@@ -40,7 +40,7 @@ typedef struct{
     /*============================================================*/
     // Sensor process sector
     /*============================================================*/
-
+    bool  sensorAlive;
     float sensorValue[8];
     char  sensorState;
     float position;

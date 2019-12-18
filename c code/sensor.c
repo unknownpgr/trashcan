@@ -300,6 +300,7 @@ int main(){
         ERR("Cannot get shared memory. err code : %d",control);
         return -1;
     }
+    control->sensorAlive = 1;
 
     // Start sensing
     float position, valueSum, weightedSum;
@@ -356,5 +357,9 @@ int main(){
 
     bcm2835_spi_end();
     bcm2835_close();
+
+    LOG("Sensor processor successfully terminated.");
+
+    control->sensorAlive = 0;
     return 0;
 }

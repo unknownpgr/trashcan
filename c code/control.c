@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <sys/shm.h>
+#include <sys/types.h>
 #include <math.h>
 #include "controlProtocol.h"
 #include "log.h"
@@ -38,33 +39,20 @@ int exec(char* program){
     return 0;
 }
 
-#define VELO 1500
-#define ACC 200000
-#define LIMDT 3000000
+#define VELO        1500
+#define ACC_WHEEL   200000
+#define ACC_ROBOT   2000
+#define LIMDT       3000000
+#define POS_COEFF   .3f
+#define PI          3.141592653589793238462643383279f
+#define WHEEL_RAD   0.025f // Wheel radius in meter
+#define NANOSEC     1000000000
+
+SHM_CONTROL* control;
 
 int main_remote(){
-    LOG("Start controller.");
-
-    // Get control object from shared memory.
-    SHM_CONTROL* control = getControlStruct();
-    if((int)control<0){
-        ERR("Cannot get shared memory. err code : %d",control);
-        return -1;
-    }
-
-    // Exit existing child processes
-    control->exit = 1;
-    sleep_ms(100);
-    control->exit = 0;
-
-    // Start child process
     exec("./comm.o");
-    exec("./motor.o");
-
-    // Check motor and server
-    LOG("Motor alive : %s",BOOL(control->motorAlive));
     LOG("Server alive : %s",BOOL(control->serverAlive));
-    control->run = 1;
 
     float
         cvl,cvr,    // Current velocity
@@ -77,12 +65,12 @@ int main_remote(){
         dvl = control->userVL;
         dvr = control->userVR;
 
-        ACCELERATE(cvl,dvl,ACC,0.01f);
-        ACCELERATE(cvr,dvr,ACC,0.01f);
+        ACCELERATE(cvl,dvl,ACC_WHEEL,0.01f);
+        ACCELERATE(cvr,dvr,ACC_WHEEL,0.01f);
 
-        if(cvl!=0) dtl = 1000000000/cvl;
+        if(cvl!=0) dtl = NANOSEC/cvl;
         else dtl = 0;
-        if(cvr!=0) dtr = 1000000000/cvr;
+        if(cvr!=0) dtr = NANOSEC/cvr;
         else dtr = 0;
 
         if(cvl==-1.f||cvr==-1.f)break;
@@ -100,50 +88,9 @@ int main_remote(){
         control->dtL = (int)dtl;
         control->dtR = (int)dtr;
     }
-
-    LOG("Turn off motor");
-    control->run=0;
-    sleep_ms(10);
-
-    LOG("Exit all subprocess");
-    control->exit=1;
-    sleep_ms(100);
-
-    LOG("Motor alive : %s",BOOL(control->motorAlive));
-    LOG("Server alive : %s",BOOL(control->serverAlive));
-
-    if(removeControlStruct(control)==-1){ERR("Cannot remove shared memory.");}
-    else LOG("Shared memory removed.");
-
-    LOG("Exit control control.");
 }
 
 int main_lineTracing(){
-    LOG("Start controller.");
-
-    // Get control object from shared memory.
-    SHM_CONTROL* control = getControlStruct();
-    if((int)control<0){
-        ERR("Cannot get shared memory. err code : %d",control);
-        return -1;
-    }
-
-    // Exit existing child processes
-    control->exit = 1;
-    sleep_ms(100);
-    control->exit = 0;
-
-    // Start child process
-    sleep_ms(1000);
-    exec("./motor.o");
-    sleep_ms(1000);
-    exec("./sensor.o");
-    sleep_ms(1000);
-
-    // Check motor and server
-    LOG("Motor alive : %s",BOOL(control->motorAlive));
-    // LOG("Sensor alive : %s",BOOL(control->serverAlive));
-    control->run = 1;
 
     float
         cvl,cvr,    // Current velocity
@@ -151,21 +98,19 @@ int main_lineTracing(){
         dtl,dtr;    // Delta time (the reciprocal of current velocity)
 
     for(int i =0;;i++){
-        #define POSITION_COEFF .3f
-
         if(control->lineout){
             dvl=dvr=0;
         }else{
-            dvl = VELO*(1+control->position*POSITION_COEFF);
-            dvr = VELO*(1-control->position*POSITION_COEFF);
+            dvl = VELO*(1+control->position*POS_COEFF);
+            dvr = VELO*(1-control->position*POS_COEFF);
         }
 
-        ACCELERATE(cvl,dvl,ACC,0.01f);
-        ACCELERATE(cvr,dvr,ACC,0.01f);
+        ACCELERATE(cvl,dvl,ACC_WHEEL,0.01f);
+        ACCELERATE(cvr,dvr,ACC_WHEEL,0.01f);
 
-        if(cvl!=0) dtl = 1000000000/cvl;
+        if(cvl!=0) dtl = NANOSEC/cvl;
         else dtl = 0;
-        if(cvr!=0) dtr = 1000000000/cvr;
+        if(cvr!=0) dtr = NANOSEC/cvr;
         else dtr = 0;
 
         if(cvl==-1.f||cvr==-1.f)break;
@@ -186,24 +131,130 @@ int main_lineTracing(){
         control->dtL = (int)dtl;
         control->dtR = (int)dtr;
     }
+}
 
+// Do p-control with motor.
+void moveTicks(int64_t ticks){
+
+    // p-control value
+    float destVelo = 0;
+    float currVelo = 0;
+
+    int64_t destTick = control->tickC+ticks*2;
+    float   pGain    = .5f;
+
+    // Interval control for accurate acceleration and deceleration
+    struct timespec time;
+    clock_gettime(CLOCK_REALTIME, &time);
+
+    int32_t currTime    = time.tv_nsec;          // Current time
+    int32_t recentTime  = time.tv_nsec;          // Recent task-executed time
+    int32_t interval    = 1000000;               // 1000000ns = 1ms
+    float   intervalSec = interval*1.f/NANOSEC; // Interval in sec 
+    int32_t dt          = 0;                     // currTime - recentTime
+
+    // Control variable
+    float veloL, veloR, dtL, dtR;
+
+    for(int i =0;;){
+        clock_gettime(CLOCK_REALTIME, &time);
+        currTime = time.tv_nsec;
+        dt = currTime-recentTime;
+        if(dt<0)dt+=NANOSEC;
+        if(dt<interval){
+            usleep(1);
+            continue;
+        }
+        recentTime += interval;
+        if(recentTime>NANOSEC)recentTime-=NANOSEC;
+        i++;
+
+        // P-control
+        int64_t err = destTick-control->tickC;
+        if(err<=0)break;
+        destVelo = err*pGain;
+
+        if(control->lineout) veloL=veloR=0;
+        else{
+            ACCELERATE(currVelo,destVelo,ACC_ROBOT,intervalSec);
+            veloL = currVelo*(1+control->position*POS_COEFF);
+            veloR = currVelo*(1-control->position*POS_COEFF);
+        }
+
+        if(veloL!=0) dtL = (NANOSEC/veloL);
+        else         dtL = 0;
+        if(veloR!=0) dtR = (NANOSEC/veloR);
+        else         dtR = 0;
+
+        ABS_LIM(dtL,LIMDT);
+        ABS_LIM(dtR,LIMDT);
+
+        control->dtL = (int64_t)dtL;
+        control->dtR = (int64_t)dtR;
+
+        // Print some variables for debugging
+        // if(!(i%500)){
+        //     printf("Lineout : %d, Position : %f\n",control->lineout,control->position);
+        //     printf("error : %lld, tick : %lld\n",err,control->tickC);
+        //     printf("dv:%f, cv:%f\n",destVelo,currVelo);
+        //     printf("vL : %f, vR : %f\n",veloL,veloR);
+        //     printf("dtL:%f, dtR:%f\n",dtL,dtR);
+        //     LOG("%d",i);
+        // }
+    }
+}
+
+void moveMeter(float meter){
+    int64_t ticks = (meter/(PI*WHEEL_RAD))*200;
+    LOG("Move meter : %f, Ticks : %lld",meter,ticks);
+    moveTicks(ticks);
+}
+
+int main(){
+    LOG("Start controller.");
+
+    // Get control object from shared memory.
+    control = getControlStruct();
+    if((int)control<0){
+        ERR("Cannot get shared memory. err code : %d",control);
+        return -1;
+    }
+
+    // Exit existing child processes
+    control->exit = 1;
+    sleep_ms(100);
+    control->exit = 0;
+    sleep_ms(100);
+
+    // Start child process
+    sleep_ms(100);
+    exec("./motor.o");
+    sleep_ms(100);
+    exec("./sensor.o"); 
+    LOG("Motor alive : %s",BOOL(control->motorAlive));
+    LOG("Sensor alive : %s",BOOL(control->sensorAlive));
+
+    // control->dtL = 0;
+    // control->dtR = 0;
+    control->run = 1;
+
+    sleep_ms(100);
+
+    moveMeter(1.0f);
+    // main_lineTracing();
+    
     LOG("Turn off motor");
     control->run=0;
-    sleep_ms(10);
+    sleep_ms(100);
 
     LOG("Exit all subprocess");
     control->exit=1;
     sleep_ms(100);
 
     LOG("Motor alive : %s",BOOL(control->motorAlive));
-    LOG("Server alive : %s",BOOL(control->serverAlive));
 
     if(removeControlStruct(control)==-1){ERR("Cannot remove shared memory.");}
     else LOG("Shared memory removed.");
 
     LOG("Exit control control.");
-}
-
-int main(){
-    return main_lineTracing();
 }
