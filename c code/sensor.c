@@ -27,7 +27,7 @@ int getSensorData(int channel){
 #define SENSOR_CALIB_NUM    5000                // Sensor calibration iteration number
 #define CALIB_FILE          "./calibration.cal" // Sensor setting file name
 #define SENSING_TIME        100                 // Sensor sening time in us 
-#define STATE_THRESHOLD     0.5f
+#define STATE_THRESHOLD     0.3f
 
 // Error : 5,6,13 pin is never changed.
 int pins[SENSOR_NUM]            = {5,6,12,13,19,16};
@@ -63,7 +63,6 @@ void printBit8(int x){
     for(int i = 7; i>=0;i--) printf("%d",1&&(x&1<<i));
     printf("\n");
 }
-
 
 SHM_CONTROL* control;
 
@@ -264,7 +263,6 @@ uint8_t routeFSM(uint8_t currentState){
 	#undef ST_ACCUM
 	#undef ST_DECIDE
 }
-
 
 // #define repeat(var,iter) for(int var = 0;var<iter;var++)
 
