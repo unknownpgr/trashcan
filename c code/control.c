@@ -42,10 +42,10 @@ int exec(char* program){
 #define VELO        1500
 #define ACC_WHEEL   200000
 #define ACC_ROBOT   2000
-#define LIMDT       3000000
+#define LIMDT       9000000
 #define POS_COEFF   .3f
 #define PI          3.141592653589793238462643383279f
-#define WHEEL_RAD   0.025f // Wheel radius in meter
+#define WHEEL_RAD   0.025f*992.5f/1000.f // Wheel radius in meter
 #define NANOSEC     1000000000
 
 SHM_CONTROL* control;
@@ -239,7 +239,7 @@ int main(){
     control->run = 1;
 
     sleep_ms(100);
-
+// 
     moveMeter(1.0f);
     // main_lineTracing();
     
