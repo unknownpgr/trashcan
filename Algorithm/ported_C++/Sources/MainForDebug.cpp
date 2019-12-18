@@ -4,6 +4,7 @@
 #include <sstream>
 #include <crtdbg.h>
 #include "RobotAlgorithm.h"
+#include "WebInteract.h"
 
 std::string GetGraph1()
 {
@@ -56,6 +57,20 @@ extern std::vector<MapNodePtr> nodeList;
 
 int main()
 {
+	SendData("Test.txt", "@100 100 100");
+	DataFromWebPtr dataPtr = ReceiveData();
+	if (dataPtr->first == CommFromWeb::Undefined)
+		std::cout << "파일을 읽지 않았습니다." << std::endl;
+	else
+	{
+		std::cout << "파일을 읽고 삭제하였습니다." << std::endl;
+
+		for (std::string token : dataPtr->second)
+			std::cout << token << " ";
+
+		std::cout << std::endl;
+	}
+	
 	//_crtBreakAlloc = 1064;
 	std::string graphStr = GetGraph3();
 	char way = 'O', notWay = '.';

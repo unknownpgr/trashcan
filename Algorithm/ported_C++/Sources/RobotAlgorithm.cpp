@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <stack>
 #include <string>
+#include <fstream>
 
 const double ERROR_RATE = 0.05;
 const double DIST_INF = std::numeric_limits<double>::max() / 2 - 1;
@@ -61,11 +62,12 @@ std::shared_ptr<std::string> GetNodeJSON()
 		*result += std::to_string(nodeList[i]->NodeNumber);
 		*result += "\",";
 
-		*result += "\"position\":\"(";
+		*result += "\"position\":{";
+		*result += "\"x\":\"";
 		*result += std::to_string(nodeList[i]->Position.X);
-		*result += ",";
+		*result += "\",\"y\":\"";
 		*result += std::to_string(nodeList[i]->Position.Y);
-		*result += ")\",";
+		*result += "\"},";
 		*result += "\"connected\":[";
 
 		bool written = false;
