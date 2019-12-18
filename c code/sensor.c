@@ -3,6 +3,7 @@
 #include "log.h"
 #include "gpio.h"
 #include <unistd.h>
+#include "Control"
 
 int sleep_ms(int ms){
     for(int i =0;i<ms;i++){
@@ -10,6 +11,7 @@ int sleep_ms(int ms){
     }
 }
 
+// Get sensor data from adc module.
 int getSensorData(int channel){
     uint8_t sendData[3] = {0x01, (0x08 + channel) << 4, 0x00};
     bcm2835_spi_transfern(sendData,sizeof(sendData));
@@ -22,6 +24,7 @@ float sensorWeights[6] = {-5.f, -3.f, -1.f, 1.f, 3.f, 5.f};
 int mask = 0x00;
 int time_us = 1000;
 
+// Set pin mode and clear it.
 void initPins(){
     for(int i =0 ;i<6;i++){
         bcm2835_gpio_fsel(pins[i],BCM2835_GPIO_FSEL_OUTP);
@@ -29,6 +32,7 @@ void initPins(){
     }
 }
 
+// Get IR sensor data
 int getIRData(int channel){
     bcm2835_gpio_set(pins[channel]);
     usleep(100);
