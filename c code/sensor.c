@@ -16,9 +16,41 @@ int getSensorData(int channel){
     return ((sendData[1] & 3) << 8) + sendData[2];
 }
 
-int main(){
+// Error : 5,6,13 pin is never changed.
+int pins[6] = {5,6,12,13,19,16};
+int mask = 0x00;
+int time_us = 1000;
 
+void initPins(){
+    for(int i =0 ;i<6;i++){
+        MODE_OUT(pins[i]);
+        CLR(pins[i]);
+    }
+}
+
+int getIRData(int channel){
+    initPins();
+    GPIO->CLR[0]|=mask;
+    GPIO->SET[0]|=(0x01<<(pins[channel]));
+    sleep_ms(200);
+    int data = getSensorData(channel);
+    GPIO->CLR[0]|=mask;
+    return data;
+}
+
+//Print bit of int.
+void printBit(int x){
+    printf("0b");
+    for(int i = 31; i>=0;i--) printf("%d",1&&(x&1<<i));
+    printf("\n");
+}
+
+int main(){
     initGpioMmap();
+    initPins();
+    // return 0;
+    mask = getMask(pins,6);
+    printBit(mask);
 
     if(!bcm2835_init()){
         ERR("bcm283 initialization failed.");
@@ -31,9 +63,12 @@ int main(){
     }
     LOG("SPI successfully opened.");
 
+    initPins();
+
     for(int i = 0;i<1000;i++){
-        sleep_ms(10);
-        printf("%d\n",getSensorData(0));
+        for(int j = 0;j<6;j++){
+            getIRData(j);
+        }
     }
 
     bcm2835_spi_end();

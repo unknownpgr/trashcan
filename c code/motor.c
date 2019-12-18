@@ -60,6 +60,12 @@ int processCoreAssign(){
     return core;
 }
 
+typedef struct{
+    int* pins;          // Used pins
+    int  pinMask;       // Bit mask that indicate
+    int* phaseMasks;    // Bit masks of each phase
+    int  phase;         // Current phase = index of phaseMasks
+}MOTOR;
 
 void initMotor(MOTOR* motor, int pins[4], int phases[8]){
 
