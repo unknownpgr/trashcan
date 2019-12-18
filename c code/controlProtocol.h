@@ -35,7 +35,7 @@ typedef struct{
     int     shmSize;    // Size of shared memory
     int     shmID;      // ID of shared memory given by kernel. used to control or remove shared memory
     void*   shm;        // Pointer of shared memory. therefore it indicates motor control object itself.
-}MOTOR_CONTROL;
+}SHM_CONTROL;
 
 #undef bool
 
@@ -44,16 +44,16 @@ typedef struct{
 #define SHM_KEY         8080
 #define SHM_SIZE        1024
 
-MOTOR_CONTROL* getControlStruct(){
+SHM_CONTROL* getControlStruct(){
     int shmID = shmget(SHM_KEY,SHM_SIZE,IPC_CREAT|0666); //0666 = Read and write
-    if(shmID==-1) return (MOTOR_CONTROL*)SHM_ERR_GET;
+    if(shmID==-1) return (SHM_CONTROL*)SHM_ERR_GET;
 
     // Paramter : (Key, Address(0 = assigned by kernel),  Permission(0 = READ/WRITE))
     // Return   : Pointer of start address of shared memory
     void* sharedMemory = shmat(shmID,(void*)0,0);   // Attach shared memory to variable
-    if((int)sharedMemory==-1)return (MOTOR_CONTROL*)SHM_ERR_ATTACH;
+    if((int)sharedMemory==-1)return (SHM_CONTROL*)SHM_ERR_ATTACH;
 
-    MOTOR_CONTROL* motorControl = (MOTOR_CONTROL*)sharedMemory;
+    SHM_CONTROL* motorControl = (SHM_CONTROL*)sharedMemory;
     motorControl->shmKey    = SHM_KEY;
     motorControl->shmSize   = SHM_SIZE;
     motorControl->shmID     = shmID;
@@ -62,7 +62,7 @@ MOTOR_CONTROL* getControlStruct(){
     return motorControl;
 }
 
-int removeControlStruct(MOTOR_CONTROL* control){
+int removeControlStruct(SHM_CONTROL* control){
     return shmctl(control->shmID, IPC_RMID, 0);
 }
 

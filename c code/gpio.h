@@ -1,3 +1,7 @@
+#ifndef _GPIO_H
+#define _GPIO_H
+
+#include <fcntl.h>
 #include <sys/mman.h>
 
 // GPIO memory map base address
@@ -17,7 +21,9 @@ typedef struct{
 GPIO_t* GPIO = NULL;
 
 // Initialize the GPIO memory map 
-void init_gpio_mmap(){
+void initGpioMmap(){
+    if(GPIO!=NULL)return;
+
     // Open file
     int fd = open("/dev/mem", O_RDWR|O_SYNC);    
     if ( fd < 0 ){
@@ -33,16 +39,10 @@ void init_gpio_mmap(){
     }
 }
 
-typedef struct{
-    int* pins;          // Used pins
-    int  pinMask;       // Bit mask that indicate
-    int* phaseMasks;    // Bit masks of each phase
-    int  phase;         // Current phase = index of phaseMasks
-}MOTOR;
-
 #define MODE_IN(pin)    ((GPIO->SELECT[(pin)/10])&=(~(0x07<<(((pin)%10)*3)))) // Set gpio mode of given pin to input
 #define MODE_OUT(pin)   ((GPIO->SELECT[(pin)/10])|=  (0x01<<(((pin)%10)*3)))  // Set gpio mode of given pin to output
 
+// Index of SET/CLR register is pin/32, but pin number is smaller than 32, so it can be 0.
 #define SET(pin) ((GPIO->SET[0])|=(1<<(pin)))  // Set given gpio pin(If mode is input, do nothing.)
 #define CLR(pin) ((GPIO->CLR[0])|=(1<<(pin)))  // Clear given gpio pin(If mode is input, do nothing.)
 
@@ -77,3 +77,5 @@ void phaseToMask(int* pins, int pinLen, int* phase, int phaseLen){
         phase[i] = mask;
     }
 }
+
+#endif

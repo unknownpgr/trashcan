@@ -1,2 +1,3 @@
 #! /bin/bash
-gcc -o sensor.o sensor.c -lbcm2835
+gcc -o sensor.o sensor.c -lbcm2835;
+sudo ./sensor.o

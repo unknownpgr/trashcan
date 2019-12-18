@@ -42,7 +42,7 @@ int main(){
     LOG("Start controller.");
 
     // Get control object from shared memory.
-    MOTOR_CONTROL* control = getControlStruct();
+    SHM_CONTROL* control = getControlStruct();
     if((int)control<0){
         ERR("Cannot get shared memory. err code : %d",control);
         return -1;

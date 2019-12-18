@@ -4,13 +4,12 @@
 
 #include "gpio.h"
 
-#include <stdlib.h>  
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
 
 #include <sys/stat.h>    
-#include <fcntl.h>
 #include <sched.h>
 #define ABS(x) (((x)>0)?(x):(-(x)))
 
@@ -61,6 +60,12 @@ int processCoreAssign(){
     return core;
 }
 
+typedef struct{
+    int* pins;          // Used pins
+    int  pinMask;       // Bit mask that indicate
+    int* phaseMasks;    // Bit masks of each phase
+    int  phase;         // Current phase = index of phaseMasks
+}MOTOR;
 
 void initMotor(MOTOR* motor, int pins[4], int phases[8]){
 
@@ -128,7 +133,7 @@ int main(){
     // ========================================================
 
     // Get control object from shared memory.
-    MOTOR_CONTROL* control = getControlStruct();
+    SHM_CONTROL* control = getControlStruct();
     if((int)control<0){
         ERR("Cannot get shared memory. err code : %d",control);
         return -1;
@@ -149,7 +154,7 @@ int main(){
     // ========================================================
 
     // GPIO = gpio base address.
-    init_gpio_mmap();
+    initGpioMmap();
     if(GPIO==NULL){
         printf("GPIO memory map error.");
         return -1;
