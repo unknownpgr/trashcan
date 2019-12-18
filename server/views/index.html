@@ -1,26 +1,50 @@
 <html>
 
 <head>
-  <title>Line Following Trashcan</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="css/style.css" rel="stylesheet" type="text/css">
-  <link href="https://fonts.googleapis.com/css?family=Noto+Sans&display=swap" rel="stylesheet">
+    <title>Line Following Trashcan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/style.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="js/drawMap.js"></script>
 </head>
 
 <body>
-  <div class="header">
-    <div class="content">Trashcan Control Page</div>
-  </div>
+    <div class="header">
+        <div class="content">Trashcan Control Page</div>
+    </div>
 
-  <div class="section">
-    <h1 class="content">Map</h1>
-    <div class="content" id="map-view"></div>
-    
-  </div>
-  
-  <script>
+    <div class="section">
+        <h1 class="content">Map</h1>
+        <div class="content" id="map-view-container">
+            <div class="content" id="map-view"></div>
+        </div>
+        <div class="control">
+            <span class="custom-button" id="btnDrawMap" onClick="btnDrawMapOnClickHandler()">Draw Map</span>
+        </div>
+    </div>
 
+    <script>
+        var view = document.getElementById('map-view');
+        initView(view, {vertex: {backColor: 'rgb(58, 58, 60)', foreColor: 'white'}, edge: {color: 'black'}});
+
+        // Draw Map Button Click Event Handler
+        function btnDrawMapOnClickHandler() {
+            console.log("request map data file");
+            $.ajax({
+                url: '/map-data',
+                type: 'GET',
+                success: (data) => {
+                    console.log('success to get map data file and try to draw map');
+                    drawMap(view, data);
+                },
+                error: (jqXHR, textStatus, err) => {
+                    console.log(`text status: ${textStatus}, error: ${err}`);
+                }
+            });
+        }
   </script>
+  
 </body>
 
 </html>
