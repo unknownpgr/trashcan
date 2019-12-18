@@ -1,8 +1,8 @@
-#include "bcm2835.h"
 #include <stdio.h>
+#include <unistd.h>
+#include "bcm2835.h"
 #include "log.h"
 #include "gpio.h"
-#include <unistd.h>
 #include "controlProtocol.h"
 
 int sleep_ms(int ms){
@@ -13,6 +13,11 @@ int sleep_ms(int ms){
 
 // Get sensor data from adc module.
 int getSensorData(int channel){
+    /*
+    Python code.
+    r = self._spi.xfer2([0x01, (0x08 + channel) << 4, 0x00])
+    adc_out = ((r[1] & 3) << 8) + r[2]
+    */
     uint8_t sendData[3] = {0x01, (0x08 + channel) << 4, 0x00};
     bcm2835_spi_transfern(sendData,sizeof(sendData));
     return ((sendData[1] & 3) << 8) + sendData[2];
@@ -54,7 +59,7 @@ void printBit(int x){
 typedef struct{
     int black[SENSOR_NUM];      // Dark min or max value for calibration
     int white[SENSOR_NUM];      // Light min or max value for calibration
-    int threshold[SENSOR_NUM];  // Reserved
+    int threshold[SENSOR_NUM];  // Reserved for state
 
     // Calibrated sensor value = (raw value+calibBias)*calibSlope
     float calibSlope[8];
@@ -86,11 +91,22 @@ int saveSetting(SENSOR_SETTING* sensorSetting){
 
 int calibration(SENSOR_SETTING* sensorSetting){
 
+    // Initialize sensor setting
+    // Warning : Setting for max-brightness. you should initizize it to infinity if you want to use min-brightness based calibration.
+    for(int i = 0;i<SENSOR_NUM;i++){
+        sensorSetting->black[i]=sensorSetting->white[i]=0;
+    }
+
     // Read adc SENSOR_CALIB_NUM times per SENSOR_NUM ir sensors and get  black max and white max.
     LOG("Press enter to read blackMax.");
     getchar();
     LOG("Calibrating...");
     for(int i = 0;i<SENSOR_NUM*SENSOR_CALIB_NUM;i++){
+        if(!((i+1)%SENSOR_CALIB_NUM)){
+            LOG("\tCalibrating...(%d/%d)",(i+1)/SENSOR_CALIB_NUM,SENSOR_NUM);
+            for(int j = 0;j<SENSOR_NUM;j++) printf("%d ",sensorSetting->black[j]);
+            printf("\n");
+        }
         int irData = getRawIRData(i%SENSOR_NUM);
         if(irData>sensorSetting->black[i%SENSOR_NUM])sensorSetting->black[i%SENSOR_NUM]=irData;
     }
@@ -99,6 +115,11 @@ int calibration(SENSOR_SETTING* sensorSetting){
     getchar();
     LOG("Calibrating...");
     for(int i = 0;i<SENSOR_NUM*SENSOR_CALIB_NUM;i++){
+        if(!((i+1)%SENSOR_CALIB_NUM)){
+            LOG("\tCalibrating...(%d/%d)",(i+1)/SENSOR_CALIB_NUM,SENSOR_NUM);
+            for(int j = 0;j<SENSOR_NUM;j++) printf("%d ",sensorSetting->white[j]);
+            printf("\n");
+        }
         int irData = getRawIRData(i%SENSOR_NUM);
         if(irData>sensorSetting->white[i%SENSOR_NUM])sensorSetting->white[i%SENSOR_NUM]=irData;
     }
@@ -115,14 +136,16 @@ int calibration(SENSOR_SETTING* sensorSetting){
 float getCalibratedIRData(int channel,SENSOR_SETTING* setting){
     bcm2835_gpio_set(pins[channel]);
     usleep(SENSING_TIME);
-    int data = getSensorData(channel);
+    float data = getSensorData(channel);
     bcm2835_gpio_clr(pins[channel]);
-    data-=setting->calibBias[channel];
+    data+=setting->calibBias[channel];
     data*=setting->calibSlope[channel];
     if(data>1)return 1.f;
     if(data<0)return 0.f;
     return data;
 }
+
+#define repeat(var,iter) for(int var = 0;var<iter;var++)
 
 int main(){
 
@@ -138,7 +161,7 @@ int main(){
     }
 
     // Set speed if spi communication
-    bcm2835_spi_set_speed_hz(15600000);
+    bcm2835_spi_set_speed_hz(1560000);
     LOG("SPI successfully opened.");
 
     // Initialize pins for sensor
@@ -146,7 +169,10 @@ int main(){
 
     // Do calibration
     SENSOR_SETTING sensorSetting;
-    calibration(&sensorSetting);
+    if(loadSetting(&sensorSetting)==-1){
+        calibration(&sensorSetting);
+        saveSetting(&sensorSetting);
+    }
 
     // Load shared memory control structure
     SHM_CONTROL* control = getControlStruct();
@@ -156,12 +182,13 @@ int main(){
         float valueSum = 0;
         float weightedSum = 0;
         for(int j = 0;j<SENSOR_NUM;j++){
-            float weight = getCalibratedIRData(j,control);
-            valueSum += weight;
-            weightedSum += weight*sensorWeights[j];
+            float value = getCalibratedIRData(j, &sensorSetting);
+            valueSum += value;
+            weightedSum += value*sensorWeights[j];
+            control->sensorValue[j];
         }
         float position = weightedSum/valueSum;
-        printf("%d\n",position);
+        control->position = position;
     }
 
     bcm2835_spi_end();

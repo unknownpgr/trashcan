@@ -100,10 +100,10 @@ try:
     adc = ADC()
     sensor = IRSensor(adc,pins)
     
-    sensor.calibration()
+    # sensor.calibration()
 
     while True:
-        sensor.getADC()
+        sensor.getRawADC()
         print(sensor.adcResult)
 
     while True:
