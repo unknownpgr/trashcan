@@ -1,14 +1,20 @@
 var com = require('../com');
+var path = require('path');
 
-module.exports = (app) => {
+module.exports = (app, dir) => {
     app.get('/map-data', (req, res) => {
-        com.receiveJSONData(__dirname + "/data/map.json", {}, (err, json) => {
+        var attr = { interval: 500, maxTryCount: 10 };
+        console.log('LOG: response for map-data');
 
+        com.receiveJSONData(dir + '/data/map.json', attr, (err, json) => {
+            if (err) {
+                res.status(500).send();
+                console.log('FAIL: failed to response for map-data')
+                return;
+            }
+
+            res.json(JSON.stringify(json));
+            console.log('SUCCESS: success to response for map-data');
         });
-
-        setTimeout(() => {
-            res.json({pos_x: '1.23', pos_y: '3.96'});
-            console.log('success to send response');
-        }, 3000);
     });
 };

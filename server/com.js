@@ -43,13 +43,15 @@ function receiveJSONData(name, attr, callback) {
             }
 
             // data callback
-            callback(cbErr,jsonData);
+            callback(cbErr, jsonData);
             clearInterval(tmrId);
 
             // delete file
-            fs.unlink(recd + '/' + name, err => {
+            /*
+            fs.unlink(name, err => {
                 if (err) throw err;
             });
+            */
 
             isReceiving = false;
         });    

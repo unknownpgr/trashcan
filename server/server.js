@@ -2,7 +2,7 @@ var express = require('express');
 var app = express();
 
 var htmlRouter = require('./router/main')(app);
-var ajaxRouter = require('./router/ajax')(app);
+var ajaxRouter = require('./router/ajax')(app, __dirname);
 
 // for ejs
 app.set('views', __dirname + '/views');
