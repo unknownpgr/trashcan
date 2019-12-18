@@ -159,11 +159,11 @@ int main(){
         printf("GPIO memory map error.");
         return -1;
     }
-    LOG("GPIO memory has been mapped.")
+    LOG("GPIO memory has been mapped.");
 
     // Initialize all pins
     initGPIO();
-    LOG("GPIO initialized.")
+    LOG("GPIO initialized.");
 
     /*
     GPIO on-off wave max frequancy is about 10kHz
@@ -181,7 +181,10 @@ int main(){
     MOTOR motorL, motorR;
     initMotor(&motorL,pins_l,phases_l);
     initMotor(&motorR,pins_r,phases_r);
-    LOG("Motor object initialized.");
+    control->tickL = 0;
+    control->tickR = 0;
+    control->tickC = 0;
+    LOG("Motor initialized.");
 
     // Print bitmask and phase for check
     #ifdef ENABLE_BITMASK
@@ -210,7 +213,7 @@ int main(){
         if(!control->run){      // If the control is stop == !run
             STOP(motorL);       // Stop both motor
             STOP(motorR);
-            for(;!(control->run||control->exit);) delay_us(1000);   //Wait othre command.
+            for(;!(control->run||control->exit);) delay_us(1000);   //Wait other command for 1ms.
         }
 
         threadL.interval = ABS(control->dtL);
@@ -218,10 +221,14 @@ int main(){
 
         if(control->dtL!=0){RUN_TASK(threadL,
             TICK(motorL,control->dtL);
+            control->tickL++;
+            control->tickC++;
         );}else STOP(motorL);
 
         if(control->dtR!=0){RUN_TASK(threadR,
             TICK(motorR,control->dtR);
+            control->tickR++;
+            control->tickC++;
         );}else STOP(motorR);
     }
 

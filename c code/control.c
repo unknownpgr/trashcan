@@ -38,6 +38,10 @@ int exec(char* program){
     return 0;
 }
 
+#define VELO 1500
+#define ACC 200000
+#define LIMDT 3000000
+
 int main_remote(){
     LOG("Start controller.");
 
@@ -70,13 +74,8 @@ int main_remote(){
     for(;;){
         sleep_ms(10);
 
-        #define VELO 1000
-
         dvl = control->userVL;
         dvr = control->userVR;
-
-        #define ACC 10000
-        #define LIMDT 3000000
 
         ACCELERATE(cvl,dvl,ACC,0.01f);
         ACCELERATE(cvr,dvr,ACC,0.01f);
@@ -152,7 +151,6 @@ int main_lineTracing(){
         dtl,dtr;    // Delta time (the reciprocal of current velocity)
 
     for(int i =0;;i++){
-        #define VELO 1500
         #define POSITION_COEFF .3f
 
         if(control->lineout){
@@ -161,9 +159,6 @@ int main_lineTracing(){
             dvl = VELO*(1+control->position*POSITION_COEFF);
             dvr = VELO*(1-control->position*POSITION_COEFF);
         }
-
-        #define ACC 200000
-        #define LIMDT 3000000
 
         ACCELERATE(cvl,dvl,ACC,0.01f);
         ACCELERATE(cvr,dvr,ACC,0.01f);
@@ -185,7 +180,8 @@ int main_lineTracing(){
         ABS_LIM(dtl,LIMDT);
         ABS_LIM(dtr,LIMDT);
 
-        if(!(i%1000000)) printf("%f, %f\n",cvl,cvr);
+        // Print some values for debugging
+        // if(!(i%1000000)) printf("%f, %f\n",cvl,cvr);
 
         control->dtL = (int)dtl;
         control->dtR = (int)dtr;
