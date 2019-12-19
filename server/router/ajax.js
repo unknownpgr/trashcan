@@ -37,4 +37,21 @@ module.exports = (app, dir) => {
         });
         
     })
+
+    app.post('/cmd/startExplore', (req, res) => {
+        console.log('LOG: request to start exploring');
+        
+        var data = '#startExplore'
+
+        com.sendStringData(dir + '/data/command.req', data, (err) => {
+            if (err) {
+                res.status(500).send();
+                console.log('FAIL: failed to excute startExplore command');
+                return;
+            }
+
+            res.status(200).send();
+            console.log('SUCCESS: success to request startExplore command');
+        });
+    });
 };

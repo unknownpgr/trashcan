@@ -2,14 +2,37 @@ var view = document.getElementById('map-view');
 initView(view, {vertex: {backColor: 'rgb(58, 58, 60)', foreColor: 'white'}, edge: {color: 'rgb(58, 58, 58)'}});
 
 // Draw Map Button Click Event Handler
-function btnDrawMapOnClickHandler() {
+function btnDrawMapOnClickHandler(id) {
     console.log("request map data file");
+
+    // request map data(GET)
     $.ajax({
         url: '/map-data',
         type: 'GET',
         success: (data) => {
             console.log('success to get map data file and try to draw map');
             drawMap(view, data, mapClickHandler);
+            
+            var btn = document.getElementById(id);
+            btn.setAttribute('onclick', '');        // unlink onclick handler
+            btn.style.backgroundColor = 'rgb(142, 142, 147)';
+        },
+        error: (jqXHR, textStatus, err) => {
+            console.log(`text status: ${textStatus}, error: ${err}`);
+        }
+    });
+}
+
+function btnExploreClickHandler(id) {
+    // send data
+    $.ajax({
+        url: '/cmd/startExplore',
+        type: 'POST',
+        
+        contentType: "text/plain",
+        data: '',
+        success: (data) => {
+            console.log('success to post command');
         },
         error: (jqXHR, textStatus, err) => {
             console.log(`text status: ${textStatus}, error: ${err}`);
@@ -81,7 +104,7 @@ function mapClickHandler(evt) {
             contentType: "application/json",
             data: JSON.stringify(sendData),
             success: (data) => {
-                console.log('success to  post command');
+                console.log('success to post command');
             },
             error: (jqXHR, textStatus, err) => {
                 console.log(`text status: ${textStatus}, error: ${err}`);
@@ -91,5 +114,5 @@ function mapClickHandler(evt) {
     // when element is vertex
     else if (elementIdInfo[1] == 'vertex') {
         // current nothing to do
-    }   
+    }
 }
