@@ -4,8 +4,10 @@
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <math.h>
+
 #include "controlProtocol.h"
 #include "log.h"
+#include "interval.h"
 
 #define ABS(x) (((x)>0)?(x):(-(x)))
 #define BOOL(x) (x)?"True":"False"
@@ -39,9 +41,9 @@ int exec(char* program){
     return 0;
 }
 
-#define VELO        1500
+#define VELO_DEFAULT 1000
 #define ACC_WHEEL   200000
-#define ACC_ROBOT   2000
+#define ACC_ROBOT   1500
 #define LIMDT       9000000
 #define POS_COEFF   .3f
 #define PI          3.141592653589793238462643383279f
@@ -49,6 +51,9 @@ int exec(char* program){
 #define NANOSEC     1000000000
 
 SHM_CONTROL* control;
+
+float destVelo = 0;
+float currVelo = 0;
 
 int main_remote(){
     exec("./comm.o");
@@ -92,115 +97,78 @@ int main_remote(){
 
 int main_lineTracing(){
 
-    float
-        cvl,cvr,    // Current velocity
-        dvl,dvr,    // Destination velocity
-        dtl,dtr;    // Delta time (the reciprocal of current velocity)
+    INTERVAL interval;
+    interval.recent = 0;
+    interval.interval = 1000000;
+    float   intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
 
-    for(int i =0;;i++){
-        if(control->lineout){
-            dvl=dvr=0;
-        }else{
-            dvl = VELO*(1+control->position*POS_COEFF);
-            dvr = VELO*(1-control->position*POS_COEFF);
-        }
+    // Control variable
+    float veloL, veloR, dtL, dtR;
+    destVelo = VELO_DEFAULT;
 
-        ACCELERATE(cvl,dvl,ACC_WHEEL,0.01f);
-        ACCELERATE(cvr,dvr,ACC_WHEEL,0.01f);
+    INTERVAL_LOOP{
+        RUN_TASK(interval,
+            if(control->lineout) veloL=veloR=0;
+            else{
+                ACCELERATE(currVelo,destVelo,ACC_ROBOT,intervalSec);
+                veloL = currVelo*(1+control->position*POS_COEFF);
+                veloR = currVelo*(1-control->position*POS_COEFF);
+            }
 
-        if(cvl!=0) dtl = NANOSEC/cvl;
-        else dtl = 0;
-        if(cvr!=0) dtr = NANOSEC/cvr;
-        else dtr = 0;
+            if(veloL!=0) dtL = (NANOSEC/veloL);
+            else         dtL = 0;
+            if(veloR!=0) dtR = (NANOSEC/veloR);
+            else         dtR = 0;
 
-        if(cvl==-1.f||cvr==-1.f)break;
+            ABS_LIM(dtL,LIMDT);
+            ABS_LIM(dtR,LIMDT);
 
-        // Calculate the velocity
-        // v = 1000000/dt
-        // :. dt = 1000000/v
-        // minv = 200
-        // :. maxdt = 1000000/200
-        // :. maxdt = 10000/2 = 5000
-
-        ABS_LIM(dtl,LIMDT);
-        ABS_LIM(dtr,LIMDT);
-
-        // Print some values for debugging
-        // if(!(i%1000000)) printf("%f, %f\n",cvl,cvr);
-
-        control->dtL = (int)dtl;
-        control->dtR = (int)dtr;
+            control->dtL = (int64_t)dtL;
+            control->dtR = (int64_t)dtR;
+        );
     }
 }
 
-// Do p-control with motor.
+// Move by given ticks. 1 tick = 2PI*WHEEL_RAD/400.
+// Use p-control.
 void moveTicks(int64_t ticks){
-
     // p-control value
-    float destVelo = 0;
-    float currVelo = 0;
-
     int64_t destTick = control->tickC+ticks*2;
     float   pGain    = .5f;
-
-    // Interval control for accurate acceleration and deceleration
-    struct timespec time;
-    clock_gettime(CLOCK_REALTIME, &time);
-
-    int32_t currTime    = time.tv_nsec;          // Current time
-    int32_t recentTime  = time.tv_nsec;          // Recent task-executed time
-    int32_t interval    = 1000000;               // 1000000ns = 1ms
-    float   intervalSec = interval*1.f/NANOSEC; // Interval in sec 
-    int32_t dt          = 0;                     // currTime - recentTime
 
     // Control variable
     float veloL, veloR, dtL, dtR;
 
-    for(int i =0;;){
-        clock_gettime(CLOCK_REALTIME, &time);
-        currTime = time.tv_nsec;
-        dt = currTime-recentTime;
-        if(dt<0)dt+=NANOSEC;
-        if(dt<interval){
-            usleep(1);
-            continue;
-        }
-        recentTime += interval;
-        if(recentTime>NANOSEC)recentTime-=NANOSEC;
-        i++;
+    INTERVAL interval;
+    interval.recent = 0;
+    interval.interval = 1000000;
+    float   intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
 
-        // P-control
-        int64_t err = destTick-control->tickC;
-        if(err<=0)break;
-        destVelo = err*pGain;
+    INTERVAL_LOOP{
+        RUN_TASK(interval,
+            // P-control
+            int64_t err = destTick-control->tickC;
+            if(err<=0)break;
+            destVelo = err*pGain;
 
-        if(control->lineout) veloL=veloR=0;
-        else{
-            ACCELERATE(currVelo,destVelo,ACC_ROBOT,intervalSec);
-            veloL = currVelo*(1+control->position*POS_COEFF);
-            veloR = currVelo*(1-control->position*POS_COEFF);
-        }
+            if(control->lineout) veloL=veloR=0;
+            else{
+                ACCELERATE(currVelo,destVelo,ACC_ROBOT,intervalSec);
+                veloL = currVelo*(1+control->position*POS_COEFF);
+                veloR = currVelo*(1-control->position*POS_COEFF);
+            }
 
-        if(veloL!=0) dtL = (NANOSEC/veloL);
-        else         dtL = 0;
-        if(veloR!=0) dtR = (NANOSEC/veloR);
-        else         dtR = 0;
+            if(veloL!=0) dtL = (NANOSEC/veloL);
+            else         dtL = 0;
+            if(veloR!=0) dtR = (NANOSEC/veloR);
+            else         dtR = 0;
 
-        ABS_LIM(dtL,LIMDT);
-        ABS_LIM(dtR,LIMDT);
+            ABS_LIM(dtL,LIMDT);
+            ABS_LIM(dtR,LIMDT);
 
-        control->dtL = (int64_t)dtL;
-        control->dtR = (int64_t)dtR;
-
-        // Print some variables for debugging
-        // if(!(i%500)){
-        //     printf("Lineout : %d, Position : %f\n",control->lineout,control->position);
-        //     printf("error : %lld, tick : %lld\n",err,control->tickC);
-        //     printf("dv:%f, cv:%f\n",destVelo,currVelo);
-        //     printf("vL : %f, vR : %f\n",veloL,veloR);
-        //     printf("dtL:%f, dtR:%f\n",dtL,dtR);
-        //     LOG("%d",i);
-        // }
+            control->dtL = (int64_t)dtL;
+            control->dtR = (int64_t)dtR;
+        );
     }
 }
 
@@ -208,6 +176,10 @@ void moveMeter(float meter){
     int64_t ticks = (meter/(PI*WHEEL_RAD))*200;
     LOG("Move meter : %f, Ticks : %lld",meter,ticks);
     moveTicks(ticks);
+}
+
+void goUntillMark(){
+    
 }
 
 int main(){
@@ -234,14 +206,14 @@ int main(){
     LOG("Motor alive : %s",BOOL(control->motorAlive));
     LOG("Sensor alive : %s",BOOL(control->sensorAlive));
 
-    // control->dtL = 0;
-    // control->dtR = 0;
+    control->dtL = 0;
+    control->dtR = 0;
     control->run = 1;
 
     sleep_ms(100);
-// 
-    moveMeter(1.0f);
-    // main_lineTracing();
+
+    // moveMeter(1.0f);
+    main_lineTracing();
     
     LOG("Turn off motor");
     control->run=0;

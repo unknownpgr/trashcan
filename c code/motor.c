@@ -1,7 +1,7 @@
 #define _GNU_SOURCE 
+#include "interval.h"
 #include "controlProtocol.h"
 #include "log.h"
-
 #include "gpio.h"
 
 #include <stdlib.h>
@@ -19,7 +19,6 @@ typedef unsigned char   bool;
 typedef unsigned char   byte;
 #define false   0
 #define true    1
-#define NANOSEC     1000000000
 
 // #define ENABLE_BITMASK
 
@@ -106,20 +105,6 @@ void printBit(int x){
     for(int i = 31; i>=0;i--) printf("%d",1&&(x&1<<i));
     printf("\n");
 }
-
-// THREAD_LOOP interval structure. must be initialized before being used.
-typedef struct{
-    long interval;
-    long recent;
-}INTERVAL;
-
-// Make a for statement that have __time variable which is updated in each loop.
-#define THREAD_LOOP for(struct timespec __time;;clock_gettime(CLOCK_REALTIME, &__time))
-
-/*
-RUN_TASK : run given task 
-*/
-#define RUN_TASK(thread,task) {static long __td;__td=__time.tv_nsec-(thread).recent;__td = (__td<0)?(__td+1000000000):(__td);if(__td>(thread).interval){(thread).recent+=(thread).interval;if((thread).recent>NANOSEC)(thread).recent-=NANOSEC;{task;}}}
 
 int main(){
     // ========================================================
@@ -208,7 +193,7 @@ int main(){
     threadL.interval = threadL.recent = 0;
     threadR.interval = threadR.recent = 0;
 
-    THREAD_LOOP{
+    INTERVAL_LOOP{
         // Check control object.
         if(control->exit)break; // If the control is exit, break the loop.
         if(!control->run){      // If the control is stop == !run
