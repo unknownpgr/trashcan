@@ -12,7 +12,7 @@ function initView(view, attr) {
 }
 
 // draw map
-function drawMap(view, mapData) {
+function drawMap(view, mapData, clickHandler) {
     var width = view.offsetWidth;
     var height = view.offsetHeight;
     var json = JSON.parse(mapData);
@@ -42,7 +42,7 @@ function drawMap(view, mapData) {
     json.forEach((value, index, array) => {
         var vertexPosX = (value.position.x - minPosX) / (maxPosX - minPosX) * width;
         var vertexPosY = (value.position.y - minPosY) / (maxPosY - minPosY) * height;
-        createVertex(view, index, {w: 24, h: 24}, {x: vertexPosX, y: vertexPosY});
+        createVertex(view, index, {w: 24, h: 24}, {x: vertexPosX, y: vertexPosY}, clickHandler);
     });
 
     // draw edges in map-view
@@ -53,16 +53,17 @@ function drawMap(view, mapData) {
         value.connected.forEach((value, index, array) => {
             vertexB = value * 1;
             console.log([vertexA, vertexB]);
-            createEdge(view, 10, [vertexA, vertexB]);
+            createEdge(view, 10, [vertexA, vertexB], clickHandler);
         });
     });
 }
 
 // create vertex
-function createVertex(view, num, size, pos) {
+function createVertex(view, num, size, pos, click) {
     var vertex = document.createElement('div');
+    var id = 'vertex_' + num;
     
-    vertex.id = 'vertex' + num;
+    vertex.id = id
 
     // size
     vertex.style.width = size.w + 'px';
@@ -85,15 +86,18 @@ function createVertex(view, num, size, pos) {
     vertex.innerHTML = num;
     vertex.style.textAlign = 'center';
 
+    // event handler
+    vertex.onclick = click;
+
     view.appendChild(vertex);
 }
 
 // create edge
-function createEdge(view, thick, vertices) {
+function createEdge(view, thick, vertices, click) {
     // preventing create existing edge again.
     var vertexMin = Math.min.apply(Math, vertices);
     var vertexMax = Math.max.apply(Math, vertices);
-    var id = `edge${vertexMin}_${vertexMax}`;
+    var id = `edge_${vertexMin}_${vertexMax}`;
     var existingElement = document.getElementById(id);
     if (typeof(existingElement) != 'undefined' && existingElement != null) {
         console.log(id + ' element already exists.');
@@ -105,8 +109,8 @@ function createEdge(view, thick, vertices) {
     edge.id = id;
 
     // get vertex information
-    var vertexAElement = document.getElementById('vertex' + vertexMin);
-    var vertexBElement = document.getElementById('vertex' + vertexMax);
+    var vertexAElement = document.getElementById('vertex_' + vertexMin);
+    var vertexBElement = document.getElementById('vertex_' + vertexMax);
     var vertexA = { x: parseFloat(vertexAElement.style.left),
                     y: parseFloat(vertexAElement.style.top),
                     w: parseFloat(vertexAElement.style.width),
@@ -153,6 +157,9 @@ function createEdge(view, thick, vertices) {
 
     // color
     edge.style.backgroundColor = edgeColor;
+
+    // event handler
+    edge.onclick = click;
 
     view.appendChild(edge);
 }

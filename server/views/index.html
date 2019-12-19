@@ -24,27 +24,7 @@
         </div>
     </div>
 
-    <script>
-        var view = document.getElementById('map-view');
-        initView(view, {vertex: {backColor: 'rgb(58, 58, 60)', foreColor: 'white'}, edge: {color: 'rgb(58, 58, 58)'}});
-
-        // Draw Map Button Click Event Handler
-        function btnDrawMapOnClickHandler() {
-            console.log("request map data file");
-            $.ajax({
-                url: '/map-data',
-                type: 'GET',
-                success: (data) => {
-                    console.log('success to get map data file and try to draw map');
-                    drawMap(view, data);
-                },
-                error: (jqXHR, textStatus, err) => {
-                    console.log(`text status: ${textStatus}, error: ${err}`);
-                }
-            });
-        }
-  </script>
-  
+    <script src="js/indexHTMLEventHandler.js"></script>
 </body>
 
 </html>

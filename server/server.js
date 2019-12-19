@@ -1,5 +1,8 @@
-var express = require('express');
-var app = express();
+const express = require('express');
+const app = express();
+
+// built-in body parser
+app.use(express.json());
 
 var htmlRouter = require('./router/main')(app);
 var ajaxRouter = require('./router/ajax')(app, __dirname);
