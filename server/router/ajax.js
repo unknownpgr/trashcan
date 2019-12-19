@@ -17,4 +17,41 @@ module.exports = (app, dir) => {
             console.log('SUCCESS: success to response for map-data');
         });
     });
+
+    app.post('/cmd/go', (req, res) => {
+        console.log('LOG: request to go command');
+        console.log(req.body);
+        
+        var json = req.body;
+        var data = `#go ${json.firstNode} ${json.secondNode} ${json.ratio}`;
+
+        com.sendStringData(dir + '/data/command.req', data, (err) => {
+            if (err) {
+                res.status(500).send();
+                console.log('FAIL: failed to excute go command');
+                return;
+            }
+
+            res.status(200).send();
+            console.log('SUCCESS: success to request go command');
+        });
+        
+    })
+
+    app.post('/cmd/startExplore', (req, res) => {
+        console.log('LOG: request to start exploring');
+        
+        var data = '#startExplore'
+
+        com.sendStringData(dir + '/data/command.req', data, (err) => {
+            if (err) {
+                res.status(500).send();
+                console.log('FAIL: failed to excute startExplore command');
+                return;
+            }
+
+            res.status(200).send();
+            console.log('SUCCESS: success to request startExplore command');
+        });
+    });
 };

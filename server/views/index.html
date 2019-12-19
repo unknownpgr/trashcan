@@ -20,31 +20,12 @@
             <div class="content" id="map-view"></div>
         </div>
         <div class="control">
-            <span class="custom-button" id="btnDrawMap" onClick="btnDrawMapOnClickHandler()">Draw Map</span>
+            <span class="custom-button" id="btnDrawMap" onClick="btnDrawMapOnClickHandler(this.id)">Draw Map</span>
+            <span class="custom-button" id="btnExplore" onClick="btnExploreClickHandler(this.id)">Explore Map</span>
         </div>
     </div>
 
-    <script>
-        var view = document.getElementById('map-view');
-        initView(view, {vertex: {backColor: 'rgb(58, 58, 60)', foreColor: 'white'}, edge: {color: 'rgb(58, 58, 58)'}});
-
-        // Draw Map Button Click Event Handler
-        function btnDrawMapOnClickHandler() {
-            console.log("request map data file");
-            $.ajax({
-                url: '/map-data',
-                type: 'GET',
-                success: (data) => {
-                    console.log('success to get map data file and try to draw map');
-                    drawMap(view, data);
-                },
-                error: (jqXHR, textStatus, err) => {
-                    console.log(`text status: ${textStatus}, error: ${err}`);
-                }
-            });
-        }
-  </script>
-  
+    <script src="js/indexHTMLEventHandler.js"></script>
 </body>
 
 </html>
