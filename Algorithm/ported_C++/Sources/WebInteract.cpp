@@ -1,15 +1,16 @@
 #include <fstream>
 #include <iostream>
 #include "WebInteract.h"
+using namespace WebInteract;
 
-void SendData(const std::string& fileName, const std::string& content)
+void WebInteract::SendData(const std::string& fileName, const std::string& content)
 {
 	std::ofstream sendStream(Path_ToSend / path(fileName));
 	sendStream << content;
 	sendStream.close();
 }
 
-DataFromWebPtr ReceiveData()
+DataFromWebPtr WebInteract::ReceiveData()
 {
 	DataFromWeb* data = new DataFromWeb;
 
@@ -25,18 +26,39 @@ DataFromWebPtr ReceiveData()
 			char header;
 			fileReader >> header;
 
-			int tokenCount = 0;
-			switch (header)
+			if (header != '#')
 			{
-			case (char)CommFromWeb::QueryPath:
-				data->first = CommFromWeb::QueryPath;
-				tokenCount = 3;
-				break;
+				fileReader.close();
+				remove(fileIter->path());
+				continue;
+			}
 
-			case (char)CommFromWeb::Undefined:
-			default:
-				data->first = CommFromWeb::Undefined;
-				tokenCount = 0;
+			std::string command;
+			fileReader >> command;
+
+			int tokenCount = 0;
+			if (command == "startCalibration")
+			{
+				data->first = CommFromWeb::Calibrate;
+			}
+			else if (command == "startExplore")
+			{
+				data->first = CommFromWeb::Explore;
+			}
+			else if (command == "getStatus")
+			{
+				data->first = CommFromWeb::GetStatus;
+			}
+			else if (command == "go")
+			{
+				data->first = CommFromWeb::Go;
+				tokenCount = 3;
+			}
+			else
+			{
+				fileReader.close();
+				remove(fileIter->path());
+				continue;
 			}
 
 			while (tokenCount--)
