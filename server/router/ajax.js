@@ -1,12 +1,15 @@
 var com = require('../com');
 var path = require('path');
 
+var sendPath = 'C:/Users/tjdgh/Documents/GitHub/trashcan/server/data';
+var receivePath = 'C:/Users/tjdgh/Documents/GitHub/trashcan/server/data';
+var attr = { interval: 100, maxTryCount: 5 };
+
 module.exports = (app, dir) => {
     app.get('/map-data', (req, res) => {
-        var attr = { interval: 500, maxTryCount: 10 };
         console.log('LOG: response for map-data');
 
-        com.receiveJSONData(dir + '/data/map.json', attr, (err, json) => {
+        com.receiveJSONData(receivePath + '/map.json', attr, (err, json) => {
             if (err) {
                 res.status(500).send();
                 console.log('FAIL: failed to response for map-data')
@@ -25,7 +28,7 @@ module.exports = (app, dir) => {
         var json = req.body;
         var data = `#go ${json.firstNode} ${json.secondNode} ${json.ratio}`;
 
-        com.sendStringData(dir + '/data/command.req', data, (err) => {
+        com.sendStringData(sendPath + '/command.req', data, (err) => {
             if (err) {
                 res.status(500).send();
                 console.log('FAIL: failed to excute go command');
@@ -43,7 +46,7 @@ module.exports = (app, dir) => {
         
         var data = '#startExplore'
 
-        com.sendStringData(dir + '/data/command.req', data, (err) => {
+        com.sendStringData(sendPath + '/command.req', data, (err) => {
             if (err) {
                 res.status(500).send();
                 console.log('FAIL: failed to excute startExplore command');
@@ -52,6 +55,36 @@ module.exports = (app, dir) => {
 
             res.status(200).send();
             console.log('SUCCESS: success to request startExplore command');
+        });
+    });
+
+    app.get('/status', (req, res) => {
+        console.log('LOG: response for status');
+    
+        var data = '#getStatus'
+
+        var errorResponse = () => {
+            res.status(500).send();
+            console.log('FAIL: failed to response for status');
+        }
+
+        // send request to path finding program
+        com.sendStringData(sendPath + '/command.req', data, (err) => {
+            if (err) {
+                errorResponse();
+                return;
+            }
+
+            // send response to webbrowser
+            com.receiveJSONData(receivePath + '/status.json', attr, (err, json) => {
+                if (err) {
+                    errorResponse();
+                    return;
+                }
+    
+                res.json(JSON.stringify(json));
+                console.log('SUCCESS: success to response for status');
+            });
         });
     });
 };

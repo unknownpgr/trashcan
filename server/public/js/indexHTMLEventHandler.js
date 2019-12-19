@@ -116,3 +116,22 @@ function mapClickHandler(evt) {
         // current nothing to do
     }
 }
+
+// getStatusTimerHandler
+function getStatusTimerHandler(id) {
+    var element = document.getElementById(id);
+
+    // request status
+    $.ajax({
+        url: '/status',
+        type: 'GET',
+
+        success: (data) => {
+            console.log('success to get status');
+            element.innerHTML = data;
+        },
+        error: (jqXHR, textStatus, err) => {
+            console.log(`text status: ${textStatus}, error: ${err}`);
+        }
+    });
+}
