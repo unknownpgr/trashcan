@@ -543,7 +543,7 @@ void ControlRobot_Raw(std::queue<Command>* q, bool* running)
 		{
 		case Action::GoStraight:
 			// 로봇이 현재 정점 2에 있는데, 가야하는 방향이 구간의 바깥 방향일 때
-			if (currDir == robotPos.Node1->FindDirOf(robotPos.Node2) &&
+			if (currDir != robotPos.Node2->FindDirOf(robotPos.Node1) &&
 				robotPos.GetDist2() == 0)
 			{
 				robotPos.Node1 = robotPos.Node2->operator[](currDir);
@@ -551,7 +551,7 @@ void ControlRobot_Raw(std::queue<Command>* q, bool* running)
 				robotPos.DivRatio1 = 1;
 			}
 
-			else if (currDir == robotPos.Node2->FindDirOf(robotPos.Node1) &&
+			else if (currDir != robotPos.Node1->FindDirOf(robotPos.Node2) &&
 				robotPos.GetDist1() == 0)
 			{
 				robotPos.Node2 = robotPos.Node1->operator[](currDir);
