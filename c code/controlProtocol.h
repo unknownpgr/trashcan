@@ -17,9 +17,6 @@ typedef struct{
     // If zero, stop wheel.
     int64_t dtL;   // Left wheel velocity
     int64_t dtR;   // Right wheel velocity
-    
-    // Reserved
-    int command;
 
     /*============================================================*/
     // Motor process sector (set from motor process)
@@ -42,9 +39,10 @@ typedef struct{
     /*============================================================*/
     bool  sensorAlive;
     float sensorValue[8];
-    char  sensorState;
+    int8_t sensorState;
     float position;
     bool  lineout;
+    int8_t mark;
 
     /*============================================================*/
     // Shared memory information sector

@@ -132,8 +132,6 @@ int main(){
         ERR("Another motor process still alive.");
         return -1;
     }
-    // Set flag
-    control->motorAlive = 1;
 
     // ========================================================
     //     Initialzie GPIO and make bitmask for control.
@@ -193,13 +191,16 @@ int main(){
     threadL.interval = threadL.recent = 0;
     threadR.interval = threadR.recent = 0;
 
+    // Set flag
+    control->motorAlive = 1;
+
     INTERVAL_LOOP{
         // Check control object.
         if(control->exit)break; // If the control is exit, break the loop.
         if(!control->run){      // If the control is stop == !run
             STOP(motorL);       // Stop both motor
             STOP(motorR);
-            for(;!(control->run||control->exit);) delay_us(1000);   //Wait other command for 1ms.
+            for(;!(control->run||control->exit);) delay_us(10);   //Wait other command for 10us.
         }
 
         threadL.interval = ABS(control->dtL);
@@ -213,8 +214,8 @@ int main(){
 
         if(control->dtR!=0){RUN_TASK(threadR,
             TICK(motorR,control->dtR);
-            control->tickR+=SIGN(control->dtL);
-            control->tickC+=SIGN(control->dtL);
+            control->tickR+=SIGN(control->dtR);
+            control->tickC+=SIGN(control->dtR);
         );}else STOP(motorR);
     }
 

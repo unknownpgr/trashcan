@@ -29,9 +29,9 @@ int getSensorData(int channel){
 #define SENSING_TIME        100                 // Sensor sening time in us 
 #define STATE_THRESHOLD     0.3f
 
-// Error : 5,6,13 pin is never changed.
-int pins[SENSOR_NUM]            = {5,6,12,13,19,16};
-float sensorWeights[SENSOR_NUM] = {-5.f, -3.f, -1.f, 1.f, 3.f, 5.f};
+int   pins[SENSOR_NUM]           = {5,     6,     12,   13,  19,    16};
+float sensorPosition[SENSOR_NUM] = {-5.f,  -3.f,  -1.f, 1.f, 3.f,   5.f};
+float sensorWeight[SENSOR_NUM]   = {0.125f, 0.125f, 1.f, 1.f, 0.125f, 0.125f};
 
 // Set pin mode and clear it.
 void initPins(){
@@ -65,6 +65,9 @@ void printBit8(int x){
 }
 
 SHM_CONTROL* control;
+
+// Uncomment here if background is black
+#define BACK_WHITE
 
 typedef struct{
     int black[SENSOR_NUM];      // Dark min or max value for calibration
@@ -100,10 +103,18 @@ int saveSetting(SENSOR_SETTING* sensorSetting){
 
 int calibration(SENSOR_SETTING* sensorSetting){
 
+    #ifndef BACK_WHILE
+        #define COMP        <
+        #define INIT_VALUE  2048
+    #else
+        #define COMP        >
+        #define INIT_VALUE  0
+    #endif
+
     // Initialize sensor setting
     // Warning : Setting for max-brightness. you should initizize it to infinity if you want to use min-brightness based calibration.
     for(int i = 0;i<SENSOR_NUM;i++){
-        sensorSetting->black[i]=sensorSetting->white[i]=0;
+        sensorSetting->black[i]=sensorSetting->white[i]=INIT_VALUE;
     }
 
     // Read adc SENSOR_CALIB_NUM times per SENSOR_NUM ir sensors and get  black max and white max.
@@ -111,32 +122,43 @@ int calibration(SENSOR_SETTING* sensorSetting){
     getchar();
     LOG("Calibrating...");
     for(int i = 0;i<SENSOR_NUM*SENSOR_CALIB_NUM;i++){
+
+        // Log
         if(!((i+1)%SENSOR_CALIB_NUM)){
             LOG("\tCalibrating...(%d/%d)",(i+1)/SENSOR_CALIB_NUM,SENSOR_NUM);
             for(int j = 0;j<SENSOR_NUM;j++) printf("%d ",sensorSetting->black[j]);
             printf("\n");
         }
+
+        // 
         int irData = getRawIRData(i%SENSOR_NUM);
-        if(irData>sensorSetting->black[i%SENSOR_NUM])sensorSetting->black[i%SENSOR_NUM]=irData;
+        if(irData COMP sensorSetting->black[i%SENSOR_NUM])sensorSetting->black[i%SENSOR_NUM]=irData;
     }
 
     LOG("Press enter to read whiteMax.");
     getchar();
     LOG("Calibrating...");
     for(int i = 0;i<SENSOR_NUM*SENSOR_CALIB_NUM;i++){
+
         if(!((i+1)%SENSOR_CALIB_NUM)){
             LOG("\tCalibrating...(%d/%d)",(i+1)/SENSOR_CALIB_NUM,SENSOR_NUM);
             for(int j = 0;j<SENSOR_NUM;j++) printf("%d ",sensorSetting->white[j]);
             printf("\n");
         }
+
         int irData = getRawIRData(i%SENSOR_NUM);
-        if(irData>sensorSetting->white[i%SENSOR_NUM])sensorSetting->white[i%SENSOR_NUM]=irData;
+        if(irData COMP sensorSetting->white[i%SENSOR_NUM])sensorSetting->white[i%SENSOR_NUM]=irData;
     }
 
     // Update threshold, slope and bias.
     for(int i = 0;i<SENSOR_NUM;i++){
-        sensorSetting->calibSlope[i]    = 1.f/(sensorSetting->white[i]-sensorSetting->black[i]);
-        sensorSetting->calibBias[i]     = -sensorSetting->black[i];
+        #ifndef BACK_WHITE
+            sensorSetting->calibSlope[i]    = 1.f/(sensorSetting->white[i]-sensorSetting->black[i]);
+            sensorSetting->calibBias[i]     = -sensorSetting->black[i];
+        #else
+            sensorSetting->calibSlope[i]    = -1.f/(sensorSetting->white[i]-sensorSetting->black[i]);
+            sensorSetting->calibBias[i]     = -sensorSetting->white[i];
+        #endif
     }
     LOG("Calibration finished.");
 }
@@ -165,6 +187,24 @@ float getCalibratedIRData(int channel,SENSOR_SETTING* setting){
 
 // Finite state machine for route detecting
 uint8_t routeFSM(uint8_t currentState){
+
+    // 0x1E : 00 011110
+    // 0x20 : 00 100000
+    // 0x01 : 00 000001
+    // 0x3F : 00 111111
+
+    uint8_t sensorCount	= 0; 
+    for(char i = 1;i<7;i++) sensorCount+=(currentState&(0x01<<i))>0;		
+
+    if(sensorCount==0)              return 0x01;
+    if(sensorCount>3)               return 0x01;
+    if(currentState&0x20)           return 0x01;
+    if(currentState&0x01)           return 0x01;
+
+    return 0x00;
+
+    //=========================================================================================
+
 	const static float decideDist   = 1.f; //1cm
 	const static int   decideTics	= (decideDist) / (2*PI*WHEEL_RAD) * 400 * 2;
 		
@@ -173,8 +213,7 @@ uint8_t routeFSM(uint8_t currentState){
 	static uint8_t markerCondition 	= 0;
 
 	{//Check accumulation condition
-		static uint8_t sensorCount 	= 0; 
-		sensorCount = 0;
+		uint8_t sensorCount	= 0; 
 		for(char i = 1;i<7;i++) sensorCount+=(currentState&(0x01<<i))>0;		
 		/*
 		This condition meanse that more than one of these three condition are true.
@@ -182,13 +221,12 @@ uint8_t routeFSM(uint8_t currentState){
 		2. Left marker sensor detected line.
 		3. Right marker sensor detected line.
 		*/
-		static uint8_t tempCondition;
         // 0x20 = 00100000
         // 0x01 = 00000001
-		tempCondition = (sensorCount>3)||((currentState&0x20)>0)||((currentState&0x01)>0);
+		uint8_t tempCondition = (sensorCount>3)||((currentState&0x20)>0)||((currentState&0x01)>0);
 		
 		//Marker decision distance check
-		static uint8_t destCondition	= 0;
+		static uint8_t  destCondition	= 0;
         static uint32_t destDistance	= 0;
 		if(tempCondition!=destCondition){
 			destCondition = tempCondition;
@@ -201,10 +239,8 @@ uint8_t routeFSM(uint8_t currentState){
 	#define ST_ACCUM  0x01
 	#define ST_DECIDE 0x02
 	
-	static uint8_t machineState = ST_READY;
-	static uint8_t marker;
-	
-	marker = MARK_NONE;
+	uint8_t machineState = ST_READY;
+	uint8_t marker       = MARK_NONE;
 	switch(machineState){
 		case ST_READY:{
 			/*
@@ -213,8 +249,8 @@ uint8_t routeFSM(uint8_t currentState){
 			initialize the accumState and go to the accumulation state.
 			*/
 			if(markerCondition) {
-				accumState		= 0x00;
-				machineState  = ST_ACCUM;
+				accumState   = 0x00;
+				machineState = ST_ACCUM;
 			}
 		}
 		break;
@@ -249,10 +285,11 @@ uint8_t routeFSM(uint8_t currentState){
 			else						marker = MARK_NONE;
 			
 			if((marker==CROSS_SECTION)&&accumState!=0x3F){
-				marker=MARK_NONE;
-				machineState = ST_ACCUM;
+				// marker=MARK_NONE;
+				// machineState = ST_ACCUM;
 			}
-			else machineState = ST_READY;
+			// else 
+            machineState = ST_READY;
 		}
 		break;
 	}
@@ -300,22 +337,24 @@ int main(){
         ERR("Cannot get shared memory. err code : %d",control);
         return -1;
     }
-    control->sensorAlive = 1;
 
     // Start sensing
     float position, valueSum, weightedSum;
     control->position    = 0;
     control->lineout     = 0;
     control->sensorState = 0;
+
+    // Set flag
+    control->sensorAlive = 1;
+
     for(int i = 0;!(control->exit);i++){
-        
         valueSum = 0;
         weightedSum = 0;
 
         for(int j = 0;j<SENSOR_NUM;j++){
             float value = getCalibratedIRData(j, &sensorSetting);
             valueSum += value;
-            weightedSum += value*sensorWeights[j];
+            weightedSum += value*sensorPosition[j];
             control->sensorValue[j] = value;
             if(value>STATE_THRESHOLD){
                 control->sensorState |= (0x01<<j);
@@ -325,18 +364,7 @@ int main(){
         }
 
         uint8_t mark = routeFSM(control->sensorState);
-        switch(mark){
-            case MARK_NONE      : break;
-            case MARK_LEFT 	    : LOG("Mark detected : left");
-            break;
-            case MARK_RIGHT	    : LOG("Mark detected : right");
-            break;
-            case MARK_BOTH 	    : LOG("Mark detected : both");
-            break;
-            case CROSS_SECTION  : LOG("Mark detected : cross");
-            break;
-            default             : ERR("Unknown mark");
-        }
+        control->mark = mark;
    
         // Check lineout and update control value
         if(valueSum>0.1f){
