@@ -4,7 +4,6 @@
 #include <sstream>
 #include <crtdbg.h>
 #include "RobotAlgorithm.h"
-#include "WebInteract.h"
 
 std::string GetGraph1()
 {
@@ -57,21 +56,7 @@ extern std::vector<MapNodePtr> nodeList;
 
 int main()
 {
-	SendData("Test.txt", "@100 100 100");
-	DataFromWebPtr dataPtr = ReceiveData();
-	if (dataPtr->first == CommFromWeb::Undefined)
-		std::cout << "파일을 읽지 않았습니다." << std::endl;
-	else
-	{
-		std::cout << "파일을 읽고 삭제하였습니다." << std::endl;
-
-		for (std::string token : dataPtr->second)
-			std::cout << token << " ";
-
-		std::cout << std::endl;
-	}
-	
-	//_crtBreakAlloc = 1064;
+	// 디버그용으로 그래프를 초기화 시켜주는 코드
 	std::string graphStr = GetGraph3();
 	char way = 'O', notWay = '.';
 
@@ -92,70 +77,19 @@ int main()
 		++height;
 	}
 
+	// 디버그용으로 설정한 그래프의 열 수와 행 수 출력
 	std::cout << "Width = " << width << ", Height = " << height << std::endl;
 
+	// 디버그용으로 로봇의 위치를 임의로 설정. 실전에서는 쓰일 일 없음.
 	InitForDebug(1, 1);
-	Init();
-	
-	std::cout << "[DFS Result]" << std::endl;
-	for (MapNodePtr node : nodeList)
-	{
-		std::cout << node->NodeNumber << " : (" << node->Position.X << ", " << node->Position.Y << "), ("
-			<< node->Error.X << ", " << node->Error.Y << ")" << std::endl;
-	}
+	//Init();
 
+	ListenFromWeb();
+	std::cout << "지금부터 웹서버의 파일 명령을 기다림. 프로그램을 종료하려면 아무키나 누르십시오..." << std::endl;
 
-	std::cout << std::endl << *(GetNodeJSON()) << std::endl;
+	std::cin.get();
 
-	int node1Index, node2Index;
-	double div1, div2;
-	std::cout << "최단 거리를 탐색할 위치를 입력하세요. (입력형식: {node1} {node2} {ratio1} {ratio2}) : ";
-	std::cin >> node1Index >> node2Index >> div1 >> div2;
-
-	MapPosition dest;
-	dest.Node1 = nodeList[node1Index];
-	dest.Node2 = nodeList[node2Index];
-	dest.DivRatio1 = div1;
-	dest.DivRatio2 = div2;
-
-	std::queue<Command> commands;
-	double dist;
-	FindShortestRoute(dest, commands, dist);
-
-	std::cout << "최단거리: " << dist << std::endl;
-
-	while (!commands.empty())
-	{
-		Command comm = commands.front();
-		commands.pop();
-
-		std::cout << "Act = ";
-		switch (comm.Act)
-		{
-		case Action::GoStraight:
-			std::cout << "GoStraight";
-			break;
-		case Action::GoToNextNode:
-			std::cout << "GoToNextNode";
-			break;
-		case Action::TurnLeft:
-			std::cout << "TurnLeft";
-			break;
-		case Action::TurnRight:
-			std::cout << "TurnRight";
-			break;
-		}
-
-		std::cout << ", Dist = " << comm.Dist;
-
-		if (comm.NextExpect != nullptr)
-			std::cout << ", NextExpect = " << comm.NextExpect->NodeNumber;
-
-		std::cout << std::endl;
-
-	}
-
-	std::queue<Command>().swap(commands);
+	StopListening();
 	DeleteNodeData();
 
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
