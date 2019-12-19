@@ -42,7 +42,7 @@ typedef struct{
     int8_t sensorState;
     float position;
     bool  lineout;
-    int8_t mark;
+    int8_t node;
 
     /*============================================================*/
     // Shared memory information sector

@@ -52,7 +52,8 @@ int exec(char* program){
 #define PI          3.141592653589793238462643383279f
 #define WHEEL_RAD   0.025f*992.5f/1000.f // Wheel radius in meter
 #define NANOSEC     1000000000
-#define TICK2DEG    5.30f
+#define TICK2DEG    4.75f
+#define TICK_S_W    400                  // Ticks between sensors and wheels
 
 SHM_CONTROL* control;
 
@@ -221,39 +222,29 @@ void moveMeter(float meter){
 void rotate(float degree){
     // p-control value
     int64_t destTick = control->tickR+(int64_t)(degree*TICK2DEG);
-    float   pGain    = 2.f;
-    int64_t errH     = (destTick-control->tickR)/2;
-    int     errSign  = SIGN(errH);
-    errH = ABS(errH);
-
+    float   pGain    = 1.f;
+    int64_t err = destTick-control->tickR;
+    int     errSign  = SIGN(err);
+    
     // Control variable
     float veloL, veloR, dtL, dtR;
 
     INTERVAL interval;
     interval.recent = 0;
     interval.interval = 100000;
+    float intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
 
     INTERVAL_LOOP{
         RUN_TASK(interval,
             // P-control
-            int64_t err = destTick-control->tickR;
-            
-            if(ABS(err)<=1){
-                destVelo=currVelo=0;
-                control->dtL = (int64_t)0;
-                control->dtR = (int64_t)0;    
-                break;
-            }
+            err = destTick-control->tickR;
+            destVelo = err*pGain;
+            ACCELERATE(currVelo,destVelo,ACC_ROBOT/2.f,intervalSec);
 
-            // destVelo = err*pGain;
-            if(ABS(err)>errH){
-                destVelo += ACC_P * 1.f * errSign * interval.interval / NANOSEC;
-            }else{
-                destVelo -= ACC_P * 0.98f * errSign * interval.interval / NANOSEC;
-            }
+            if(errSign*err<=0)return;
 
-            veloL = -destVelo;
-            veloR = destVelo;
+            veloL = -currVelo;
+            veloR = currVelo;
 
             if(veloL!=0) dtL = (NANOSEC/veloL);
             else         dtL = 0;
@@ -267,13 +258,6 @@ void rotate(float degree){
             control->dtR = (int64_t)dtR;
         );
     }
-}
-
-//Print bit of int.
-void printBit8(int x){
-    printf("0b");
-    for(int i = 7; i>=0;i--) printf("%d",1&&(x&1<<i));
-    printf("\n");
 }
 
 int8_t stop(int64_t ticks){
@@ -315,7 +299,8 @@ int8_t stop(int64_t ticks){
     return accum;
 }
 
-void goUntillMark(){
+// Go untill any node appears
+int8_t goUntillNode(){
     INTERVAL interval;
     interval.recent = 0;
     interval.interval = 1000000;
@@ -326,11 +311,11 @@ void goUntillMark(){
     destVelo = VELO_DEFAULT;
 
     INTERVAL_LOOP{
-        if(control->mark!=0x00) return;
         RUN_TASK(interval,
+            if(control->node!=0x00) break;
             if(control->lineout) veloL=veloR=0;
             else{
-                ACCELERATE(currVelo,destVelo,ACC_ROBOT,intervalSec);
+                ACCELERATE(currVelo, destVelo, ACC_ROBOT, intervalSec);
                 veloL = currVelo*(1+control->position*POS_COEFF);
                 veloR = currVelo*(1-control->position*POS_COEFF);
             }
@@ -347,22 +332,24 @@ void goUntillMark(){
             control->dtR = (int64_t)dtR;
         );
     }
+
+    return stop(TICK_S_W);
 }
 
-#define MARK_NONE       0x00 //00000000
+#define NODE_NONE       0x00 //00000000
 
-#define MARK_LEFT 		0x01 //00000001
-#define MARK_RIGHT		0x02 //00000010
-#define MARK_CROSS 	    0x04 //00000100
-#define MARK_T          0x08 //00001000
-#define MARK_TERMINAL   0x10 //00010000
+#define NODE_LEFT 		0x01 //00000001
+#define NODE_RIGHT		0x02 //00000010
+#define NODE_CROSS 	    0x04 //00000100
+#define NODE_T          0x08 //00001000
+#define NODE_TERMINAL   0x10 //00010000
 
 #define STATE_LEFT      0x01 // 0x01 : 00 000001
 #define STATE_RIGHT     0x20 // 0x20 : 00 100000
 #define STATE_CROSS     0x3F // 0x3F : 00 111111
 #define STATE_CENTER    0x1E // 0x1E : 00 011110
 
-int main(){
+int initControl(){
     LOG("Start controller.");
 
     // Get control object from shared memory.
@@ -394,44 +381,10 @@ int main(){
     sleep_ms(100);
 
     LOG("Start tracing");
-    // moveMeter(1.0f);
-    // main_lineTracing();
+    return 0;
+}
 
-    goUntillMark();
-    int8_t state = stop(400);
-    int8_t mark  = 0x00;
-
-    if((state&STATE_CROSS)==STATE_CROSS){
-        if(control->sensorState&STATE_CENTER)   mark = MARK_CROSS;
-        else                                    mark = MARK_T;
-    }else{
-             if(state&STATE_LEFT)               mark = MARK_LEFT;
-        else if(state&STATE_RIGHT)              mark = MARK_RIGHT;
-        else                                    mark = MARK_TERMINAL;
-    }
-
-    #define MARK_CASE(MARK) case MARK : LOG(#MARK); break;
-    switch(mark){
-        MARK_CASE(MARK_LEFT);
-        MARK_CASE(MARK_RIGHT);
-        MARK_CASE(MARK_CROSS);
-        MARK_CASE(MARK_T);
-        MARK_CASE(MARK_TERMINAL);
-    }
-
-    /* Rotation test
-    destVelo=currVelo=0;
-    control->dtL = (int64_t)0;
-    control->dtR = (int64_t)0;    
-    rotate(180.f);
-    LOG("TURNED");
-    sleep_ms(500);
-    destVelo=currVelo=0;
-    control->dtL = (int64_t)0;
-    control->dtR = (int64_t)0;    
-    rotate(-180.f);
-    */
-    
+void endControl(){
     LOG("Turn off motor");
     control->run=0;
     sleep_ms(100);
@@ -446,4 +399,48 @@ int main(){
     else LOG("Shared memory removed.");
 
     LOG("Exit control control.");
+}
+
+int8_t recognizeNode(int8_t state){
+    int8_t node = 0x00;
+    if((state&STATE_CROSS)==STATE_CROSS){
+        if(control->sensorState&STATE_CENTER)   node = NODE_CROSS;
+        else                                    node = NODE_T;
+    }else{
+             if(state&STATE_LEFT)               node = NODE_LEFT;
+        else if(state&STATE_RIGHT)              node = NODE_RIGHT;
+        else                                    node = NODE_TERMINAL;
+    }
+    return node;
+}
+
+int main(){
+    if(initControl()==-1){
+        ERR("Cannot initialize controller.");
+        return -1;
+    }
+
+    int8_t state, node;
+
+    while(1){
+        currVelo = destVelo = 0;
+        state = goUntillNode();
+        node = recognizeNode(state);
+
+        currVelo = destVelo = 0;
+        if(node==NODE_LEFT) rotate(90);
+        else if(node==NODE_RIGHT)rotate(-90);
+        else break;
+    }
+
+    #define NODE_CASE(NODE) case NODE : LOG(#NODE); break;
+    switch(node){
+        NODE_CASE(NODE_LEFT);
+        NODE_CASE(NODE_RIGHT);
+        NODE_CASE(NODE_CROSS);
+        NODE_CASE(NODE_T);
+        NODE_CASE(NODE_TERMINAL);
+    }
+
+    endControl();
 }

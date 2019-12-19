@@ -1,5 +1,6 @@
 #! /bin/bash
 # bash script to compile the codes and run them.
+# ContRol Bash
 ./off
 
 echo compile...;
