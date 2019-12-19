@@ -1,5 +1,7 @@
 #! /bin/bash
 # bash script to compile the codes and run them.
+./off
+
 echo compile...;
 
 # Compile c files

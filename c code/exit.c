@@ -34,10 +34,11 @@ int main(){
     for(int i =0;i<5;i++){
         control->exit = 1;
         sleep_ms(100);
-        // Check motor and server
-        LOG("Motor alive : %s",BOOL(control->motorAlive));
-        LOG("Server alive : %s",BOOL(control->serverAlive));
     }
+    // Check motor and server
+    LOG("Motor alive : %s",BOOL(control->motorAlive));
+    LOG("Server alive : %s",BOOL(control->serverAlive));
+
 
     initGPIO();
 
