@@ -19,13 +19,17 @@
         <div class="content" id="map-view-container">
             <div class="content" id="map-view"></div>
         </div>
-        <div class="control">
+        <span class="control">
             <span class="custom-button" id="btnDrawMap" onClick="btnDrawMapOnClickHandler(this.id)">Draw Map</span>
             <span class="custom-button" id="btnExplore" onClick="btnExploreClickHandler(this.id)">Explore Map</span>
-        </div>
+        </span>
+        <span id="status"></span>
     </div>
 
     <script src="js/indexHTMLEventHandler.js"></script>
+    <script>
+        setInterval(() => {getStatusTimerHandler('status')}, 1000);
+    </script>
 </body>
 
 </html>
