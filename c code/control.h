@@ -28,8 +28,11 @@ void moveTicks(int64_t ticks);
 // 
 void rotate(double degree);
 
-// Go untill any node appears
+// Go untill any node appears. return accumulated state.
 int8_t goUntillNode();
+
+// Recognize node type from accumulated state and current sensor state.
+int8_t recognizeNode(int8_t state);
 
 // 
 int initControl();
@@ -51,7 +54,13 @@ int main(){
     while(1){
         // 노드가 나타날 때까지 움직인다.
         LOG("MOVE");
+
+        //Before
         node = goUntillNode();
+        
+        //After
+        state = goUntillNode();
+        node = recognizeNode(state);
 
         LOG("TURN");
         // 만약 왼쪽이 검출되면 왼쪽으로 돈다.
