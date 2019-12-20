@@ -45,7 +45,21 @@ void initPins(){
 int getRawIRData(int channel){
     bcm2835_gpio_set(pins[channel]);
     usleep(SENSING_TIME);
-    int data = getSensorData(channel);
+    int data  = 0;
+    int data1 = getSensorData(channel);
+    int data2 = getSensorData(channel);
+    int data3 = getSensorData(channel);
+
+    if(data1>data2){
+             if(data2>data3) data = data2; // 3 2 1
+        else if(data3>data1) data = data1; // 2 1 3
+        else                 data = data3; // 2 3 1
+    }else{
+             if(data2<data3) data = data2; // 1 2 3
+        else if(data3<data1) data = data1; // 3 1 2
+        else                 data = data3; // 2 1 3
+    }
+
     bcm2835_gpio_clr(pins[channel]);
     return data;
 }
@@ -186,26 +200,32 @@ float getCalibratedIRData(int channel,SENSOR_SETTING* setting){
 #define WHEEL_RAD   2.5f    // Wheel radius in centimeter
 
 // Finite state machine for route detecting
-uint8_t nodeCheck(uint8_t currentState){
+int8_t nodeCheck(int8_t currentState){
 
     // 0x1E : 00 011110
     // 0x20 : 00 100000
     // 0x01 : 00 000001
     // 0x3F : 00 111111
 
-    uint8_t sensorCount	= 0; 
+    int8_t sensorCount	= 0; 
     for(char i = 1;i<7;i++) sensorCount+=(currentState&(0x01<<i))>0;		
 
-    if(sensorCount==0){
-        // LOG("S0");
-        return 0x01;
+    static int8_t isNode = 0;
+    static int64_t nearDist = 0;
+
+    if((sensorCount==0)||(sensorCount>3)||(currentState&0x20)||(currentState&0x01)){
+        if(isNode==1){
+            if(control->tickC-nearDist>15){
+                return 1;
+            }
+        }else{
+            isNode = 1;
+            nearDist = control->tickC;
+        }
+    }else{
+        isNode = 0;
+        nearDist = 0;
     }
-    if(sensorCount>3){
-        // LOG("S3");
-        return 0x01;
-    }
-    if(currentState&0x20)           return 0x01;
-    if(currentState&0x01)           return 0x01;
 
     return 0x00;
 }

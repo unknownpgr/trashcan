@@ -2,30 +2,31 @@
 #define _CONTROL_H
 
 #define NODE_NONE       0x00 //00000000
-
 #define NODE_LEFT 		0x01 //00000001
 #define NODE_RIGHT		0x02 //00000010
 #define NODE_CROSS 	    0x04 //00000100
 #define NODE_T          0x08 //00001000
-#define NODE_TERMINAL   0x10 //00010000
+#define NODE_T_RIGHT    0x10 
+#define NODE_T_LEFT     0x20
+#define NODE_TERMINAL   0x40 
 
-#define VELO_DEFAULT 750
-#define ACC_WHEEL   200000
-#define ACC_ROBOT   500
-#define ACC_P       400.f
-#define LIMDT       9000000
-#define POS_COEFF   .3f
-#define PI          3.141592653589793238462643383279f
-#define WHEEL_RAD   0.025f*992.5f/1000.f // Wheel radius in meter
+#define VELO_DEFAULT 750.0
+#define ACC_WHEEL   200000.0
+#define ACC_ROBOT   500.0
+#define ACC_P       400.0
+#define LIMDT       9000000.0
+#define POS_COEFF   .3
+#define PI          3.141592653589793238462643383279
+#define WHEEL_RAD   0.025*992.5/1000.0 // Wheel radius in meter
 #define NANOSEC     1000000000
-#define TICK2DEG    4.75f
+#define TICK2DEG    4.75
 #define TICK_S_W    400                  // Ticks between sensors and wheels
 
 // 
 void moveTicks(int64_t ticks);
 
 // 
-void rotate(float degree);
+void rotate(double degree);
 
 // Go untill any node appears
 int8_t goUntillNode();

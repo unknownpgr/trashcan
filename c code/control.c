@@ -1,13 +1,14 @@
+#include <sys/shm.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sched.h>
-#include <sys/shm.h>
-#include <sys/types.h>
 #include <math.h>
 
 #include "controlProtocol.h"
 #include "log.h"
 #include "interval.h"
+#include "control.h"
 
 #define ABS(x) (((x)>0)?(x):(-(x)))
 #define SIGN(x) (((x)>0)?1:(((x)<0)?(-1):0))
@@ -26,13 +27,24 @@ curr is the variable to be controlled and dest is the destination value.
 Increase or decrease the 'curr' to the slope of 'acc' until the 'curr' reaches 'dest'.
 */
 #define ACCELERATE(curr, dest, acc, dt){if((curr)<(dest)){(curr) += (acc)*(dt);if((curr)>(dest))(curr)=(dest);}else if((curr)>(dest)){(curr) -= (acc)*(dt);if((curr)<(dest))(curr)=(dest);}}
+double ACCELERATE_(double curr,double dest,double acc,double dt){
+    if((curr)<(dest)){
+        curr+=acc*dt;
+        if(curr>dest) return dest;
+        else          return curr;
+    }else if((curr)>(dest)){
+        curr-=acc*dt;
+        if(curr<dest) return dest;
+        else          return curr;
+    }
+}
 
 /*
 ABS_LIM : Limit the range of value in [-abslim,abslim].
 if value is larger than abslim or smaller than -abslim, make it abslim or -abslim.
 */
 #define ABS_LIM(value,abslim){if((value)>0&&(value)>(abslim))(value)=(abslim);if((value)<0&&(value)<-(abslim))(value)=-(abslim);}
-float absLimF(float value,float absLim){
+double absLimF(double value,double absLim){
     if(value>0&&value>absLim)return absLim;
     if(value<0&&value<(-absLim))return -absLim;
     return value;
@@ -48,28 +60,16 @@ int exec(char* program){
     return 0;
 }
 
-#define VELO_DEFAULT 750
-#define ACC_WHEEL   200000
-#define ACC_ROBOT   500
-#define ACC_P       400.f
-#define LIMDT       9000000
-#define POS_COEFF   .3f
-#define PI          3.141592653589793238462643383279f
-#define WHEEL_RAD   0.025f*992.5f/1000.f // Wheel radius in meter
-#define NANOSEC     1000000000
-#define TICK2DEG    4.75f
-#define TICK_S_W    400                  // Ticks between sensors and wheels
-
 SHM_CONTROL* control;
 
-float destVelo = 0;
-float currVelo = 0;
+double destVelo = 0;
+double currVelo = 0;
 
 int main_remote(){
     exec("./comm.o");
     LOG("Server alive : %s",BOOL(control->serverAlive));
 
-    float
+    double
         cvl,cvr,    // Current velocity
         dvl,dvr,    // Destination velocity
         dtl,dtr;    // Delta time (the reciprocal of current velocity)
@@ -88,7 +88,7 @@ int main_remote(){
         if(cvr!=0) dtr = NANOSEC/cvr;
         else dtr = 0;
 
-        if(cvl==-1.f||cvr==-1.f)break;
+        if(cvl==-1||cvr==-1)break;
 
         // Calculate the velocity
         // v = 1000000/dt
@@ -110,10 +110,10 @@ int main_lineTracing(){
     INTERVAL interval;
     interval.recent = 0;
     interval.interval = 1000000;
-    float   intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
+    double   intervalSec = interval.interval*1/NANOSEC; // Interval in sec 
 
     // Control variable
-    float veloL, veloR, dtL, dtR;
+    double veloL, veloR, dtL, dtR;
     destVelo = VELO_DEFAULT;
 
     INTERVAL_LOOP{
@@ -140,24 +140,32 @@ int main_lineTracing(){
 }
 
 // Todo : implement it
-int align(){
+void align(){
+    // p-control value
+    double   pGain    = 10.f;
+    int64_t err = -control->position;
+    int     errSign  = SIGN(err);
+    
+    // Control variable
+    double veloL, veloR, dtL, dtR;
+
     INTERVAL interval;
     interval.recent = 0;
-    interval.interval = 1000000;
-    float   intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
-
-    // Control variable
-    float veloL, veloR, dtL, dtR;
-    destVelo = VELO_DEFAULT;
+    interval.interval = 100000;
+    double intervalSec = interval.interval*1.0/NANOSEC; // Interval in sec 
 
     INTERVAL_LOOP{
         RUN_TASK(interval,
-            if(control->lineout) veloL=veloR=0;
-            else{
-                ACCELERATE(currVelo,destVelo,ACC_ROBOT,intervalSec);
-                veloL = currVelo*(1+control->position*POS_COEFF);
-                veloR = currVelo*(1-control->position*POS_COEFF);
-            }
+
+            // P-control
+            err = -control->position;
+            destVelo = err*pGain;
+            ACCELERATE(currVelo,destVelo,ACC_ROBOT/2,intervalSec);
+
+            if(errSign*err<=0)return;
+
+            veloL = -currVelo;
+            veloR = currVelo;
 
             if(veloL!=0) dtL = (NANOSEC/veloL);
             else         dtL = 0;
@@ -180,15 +188,15 @@ int align(){
 void moveTicks(int64_t ticks){
     // p-control value
     int64_t destTick = control->tickC+ticks*2;
-    float   pGain    = .5f;
+    double   pGain    = .5f;
 
     // Control variable
-    float veloL, veloR, dtL, dtR;
+    double veloL, veloR, dtL, dtR;
 
     INTERVAL interval;
     interval.recent = 0;
     interval.interval = 1000000;
-    float   intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
+    double   intervalSec = interval.interval*1/NANOSEC; // Interval in sec 
 
     INTERVAL_LOOP{
         RUN_TASK(interval,
@@ -218,33 +226,33 @@ void moveTicks(int64_t ticks){
     }
 }
 
-void moveMeter(float meter){
+void moveMeter(double meter){
     int64_t ticks = (meter/(PI*WHEEL_RAD))*200;
     LOG("Move meter : %f, Ticks : %lld",meter,ticks);
     moveTicks(ticks);
 }
 
-void rotate(float degree){
+void rotate(double degree){
     // p-control value
     int64_t destTick = control->tickR+(int64_t)(degree*TICK2DEG);
-    float   pGain    = 1.f;
+    double   pGain    = 1;
     int64_t err = destTick-control->tickR;
     int     errSign  = SIGN(err);
     
     // Control variable
-    float veloL, veloR, dtL, dtR;
+    double veloL, veloR, dtL, dtR;
 
     INTERVAL interval;
     interval.recent = 0;
     interval.interval = 100000;
-    float intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
+    double intervalSec = interval.interval*1.0/NANOSEC; // Interval in sec 
 
     INTERVAL_LOOP{
         RUN_TASK(interval,
             // P-control
             err = destTick-control->tickR;
             destVelo = err*pGain;
-            ACCELERATE(currVelo,destVelo,ACC_ROBOT/2.f,intervalSec);
+            ACCELERATE(currVelo,destVelo,ACC_ROBOT/2,intervalSec);
 
             if(errSign*err<=0)return;
 
@@ -265,7 +273,7 @@ void rotate(float degree){
     }
 }
 
-int64_t getInstance(){
+int64_t getDistance(){
     return control->tickC;
 }
 
@@ -273,16 +281,16 @@ int8_t stop(int64_t ticks){
     INTERVAL interval;
     interval.recent = 0;
     interval.interval = 1000000;
-    float   intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
+    double   intervalSec = interval.interval*1.0/NANOSEC; // Interval in sec 
 
     // Control variable
-    float dt;
+    double dt;
     destVelo = VELO_DEFAULT;
 
     // P-control for stop
     int64_t destDist = control->tickC+ticks;
     int64_t error    = ticks; 
-    float pGain = currVelo/ticks;
+    double pGain = currVelo/ticks;
 
     int8_t accum = 0x00;
 
@@ -293,7 +301,7 @@ int8_t stop(int64_t ticks){
 
             i++;
             if(!(i%100)){
-                LOG("VELO : %f",currVelo);  
+                // LOG("VELO : %f",currVelo);  
             }
 
             error = destDist-control->tickC;
@@ -321,10 +329,11 @@ int8_t goUntillNode(){
     INTERVAL interval;
     interval.recent = 0;
     interval.interval = 1000000;
-    float intervalSec = interval.interval*1.f/NANOSEC; // Interval in sec 
+    double intervalSec = interval.interval*1.0/NANOSEC; // Interval in sec 
+    printf("intervalSec : %f\n",intervalSec);
 
     // Control variable
-    float veloL, veloR, dtL, dtR;
+    double veloL, veloR, dtL, dtR;
     destVelo = VELO_DEFAULT;
 
     int i = 0;
@@ -332,10 +341,14 @@ int8_t goUntillNode(){
     INTERVAL_LOOP{
         RUN_TASK(interval,
 
-            if(control->node!=0x00) break;
+            if(control->node!=0x00) {
+                printf("%x\n",control->sensorState);
+                break;
+            }
+
             if(control->lineout) veloL=veloR=0;
             else{
-                ACCELERATE(currVelo, destVelo, ACC_ROBOT, intervalSec);
+                currVelo = ACCELERATE_(currVelo, destVelo, ACC_ROBOT, intervalSec);
                 veloL = currVelo*(1+control->position*POS_COEFF);
                 veloR = currVelo*(1-control->position*POS_COEFF);
             }
@@ -353,7 +366,8 @@ int8_t goUntillNode(){
 
             i++;
             if(!(i%100)){
-                printf("DTL : %lld DTR %lld\n",control->dtL,control->dtR);  
+                // printf("Lineout? %d\n",control->lineout);
+                // printf("DTL : %lld DTR %lld\n",control->dtL,control->dtR);  
                 LOG("VL: %f, VR: %f",veloL,veloR);
             }
 
@@ -362,14 +376,6 @@ int8_t goUntillNode(){
 
     return stop(TICK_S_W);
 }
-
-#define NODE_NONE       0x00 //00000000
-
-#define NODE_LEFT 		0x01 //00000001
-#define NODE_RIGHT		0x02 //00000010
-#define NODE_CROSS 	    0x04 //00000100
-#define NODE_T          0x08 //00001000
-#define NODE_TERMINAL   0x10 //00010000
 
 #define STATE_LEFT      0x01 // 0x01 : 00 000001
 #define STATE_RIGHT     0x20 // 0x20 : 00 100000
@@ -454,8 +460,9 @@ int main(){
     int8_t state, node;
 
     while(1){
-        LOG("MOVE");
+     LOG("MOVE");
         currVelo = destVelo = 0;
+        align();
         state = goUntillNode();
         node = recognizeNode(state);
 
