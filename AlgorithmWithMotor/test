@@ -1,0 +1,4 @@
+#! /bin/bash
+gcc -o test.o test.c;
+echo compile finished.;
+sudo ./test.o

@@ -1,0 +1,4 @@
+#! /bin/bash
+echo compile...
+gcc -o sensor.o sensor.c -lbcm2835;
+sudo ./sensor.o
