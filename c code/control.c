@@ -346,7 +346,11 @@ int8_t goUntillNode(){
                 break;
             }
 
-            if(control->lineout) veloL=veloR=0;
+            if(control->lineout){
+                currVelo = ACCELERATE_(currVelo, 0, ACC_ROBOT, intervalSec);
+                veloL = currVelo;
+                veloR = currVelo;
+            }
             else{
                 currVelo = ACCELERATE_(currVelo, destVelo, ACC_ROBOT, intervalSec);
                 veloL = currVelo*(1+control->position*POS_COEFF);
