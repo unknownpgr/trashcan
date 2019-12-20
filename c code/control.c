@@ -440,13 +440,20 @@ void endControl(){
 
 int8_t recognizeNode(int8_t state){
     int8_t node = 0x00;
+    int8_t line = control->sensorState&STATE_CENTER;
     if((state&STATE_CROSS)==STATE_CROSS){
-        if(control->sensorState&STATE_CENTER)   node = NODE_CROSS;
-        else                                    node = NODE_T;
+        if(line) node = NODE_CROSS;
+        else     node = NODE_T;
     }else{
-             if(state&STATE_LEFT)               node = NODE_LEFT;
-        else if(state&STATE_RIGHT)              node = NODE_RIGHT;
-        else                                    node = NODE_TERMINAL;
+        if(state&STATE_LEFT){
+            if(line) node = NODE_T_LEFT;
+            else     node = NODE_LEFT;
+        }
+        else if(state&STATE_RIGHT){
+            if(line) node = NODE_T_RIGHT;
+            else     node = NODE_RIGHT;
+        }
+        else         node = NODE_TERMINAL;
     }
     return node;
 }
@@ -479,6 +486,8 @@ int main(){
         NODE_CASE(NODE_RIGHT);
         NODE_CASE(NODE_CROSS);
         NODE_CASE(NODE_T);
+        NODE_CASE(NODE_T_LEFT);
+        NODE_CASE(NODE_T_RIGHT);
         NODE_CASE(NODE_TERMINAL);
     }
 
