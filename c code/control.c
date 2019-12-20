@@ -32,6 +32,11 @@ ABS_LIM : Limit the range of value in [-abslim,abslim].
 if value is larger than abslim or smaller than -abslim, make it abslim or -abslim.
 */
 #define ABS_LIM(value,abslim){if((value)>0&&(value)>(abslim))(value)=(abslim);if((value)<0&&(value)<-(abslim))(value)=-(abslim);}
+float absLimF(float value,float absLim){
+    if(value>0&&value>absLim)return absLim;
+    if(value<0&&value<(-absLim))return -absLim;
+    return value;
+}
 
 int exec(char* program){
     pid_t pid=fork();
@@ -277,11 +282,19 @@ int8_t stop(int64_t ticks){
 
     int8_t accum = 0x00;
 
+    int i = 0;
+
     INTERVAL_LOOP{
         RUN_TASK(interval,
+
+            i++;
+            if(!(i%100)){
+                LOG("VELO : %f",currVelo);  
+            }
+
             error = destDist-control->tickC;
-            if(error<=0)break;
             currVelo = error*pGain;
+            if(currVelo<=.5f)break;
 
             // ACCELERATE(currVelo,destVelo,ACC_ROBOT,intervalSec);
 
@@ -310,8 +323,11 @@ int8_t goUntillNode(){
     float veloL, veloR, dtL, dtR;
     destVelo = VELO_DEFAULT;
 
+    int i = 0;
+
     INTERVAL_LOOP{
         RUN_TASK(interval,
+
             if(control->node!=0x00) break;
             if(control->lineout) veloL=veloR=0;
             else{
@@ -325,11 +341,18 @@ int8_t goUntillNode(){
             if(veloR!=0) dtR = (NANOSEC/veloR);
             else         dtR = 0;
 
-            ABS_LIM(dtL,LIMDT);
-            ABS_LIM(dtR,LIMDT);
+            dtL = absLimF(dtL,LIMDT);
+            dtR = absLimF(dtR,LIMDT);
 
             control->dtL = (int64_t)dtL;
             control->dtR = (int64_t)dtR;
+
+            i++;
+            if(!(i%100)){
+                printf("DTL : %lld DTR %lld\n",control->dtL,control->dtR);  
+                LOG("VL: %f, VR: %f",veloL,veloR);
+            }
+
         );
     }
 
@@ -354,6 +377,7 @@ int initControl(){
 
     // Get control object from shared memory.
     control = getControlStruct();
+
     if((int)control<0){
         ERR("Cannot get shared memory. err code : %d",control);
         return -1;
@@ -364,6 +388,9 @@ int initControl(){
     sleep_ms(100);
     control->exit = 0;
     sleep_ms(100);
+
+    initControlStruct(control);
+    LOG("Control structure initialized.")
 
     // Start child process
     exec("./motor.o");
@@ -423,10 +450,12 @@ int main(){
     int8_t state, node;
 
     while(1){
+        LOG("MOVE");
         currVelo = destVelo = 0;
         state = goUntillNode();
         node = recognizeNode(state);
 
+        LOG("TURN");
         currVelo = destVelo = 0;
         if(node==NODE_LEFT) rotate(90);
         else if(node==NODE_RIGHT)rotate(-90);
@@ -443,4 +472,5 @@ int main(){
     }
 
     endControl();
+    return 0;
 }

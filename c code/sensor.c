@@ -27,7 +27,7 @@ int getSensorData(int channel){
 #define SENSOR_CALIB_NUM    5000                // Sensor calibration iteration number
 #define CALIB_FILE          "./calibration.cal" // Sensor setting file name
 #define SENSING_TIME        100                 // Sensor sening time in us 
-#define STATE_THRESHOLD     0.2f
+#define STATE_THRESHOLD     0.25f
 
 int   pins[SENSOR_NUM]           = {5,     6,     12,   13,  19,    16};
 float sensorPosition[SENSOR_NUM] = {-5.f,  -3.f,  -1.f, 1.f, 3.f,   5.f};

@@ -45,6 +45,11 @@ typedef struct{
     int8_t node;
 
     /*============================================================*/
+    // Section flag for initializing
+    /*============================================================*/    
+    int8_t sectionFlag;
+
+    /*============================================================*/
     // Shared memory information sector
     /*============================================================*/
     key_t   shmKey;     // Key to identify shared memory
@@ -59,6 +64,12 @@ typedef struct{
 #define SHM_ERR_ATTACH  -2
 #define SHM_KEY         8080
 #define SHM_SIZE        1024
+
+void initControlStruct(SHM_CONTROL* control){
+    for(int i = (int)control;i<(int)(&(control->sectionFlag));i++){
+        *(char*)i=0;
+    }
+}
 
 SHM_CONTROL* getControlStruct(){
     int shmID = shmget(SHM_KEY,SHM_SIZE,IPC_CREAT|0666); //0666 = Read and write
