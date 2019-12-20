@@ -36,6 +36,9 @@ int initControl();
 // 
 void endControl();
 
+// Return total distance from device boot.
+int64_t getDistance();
+
 /* 사용 예시
 int main(){
     if(initControl()==-1){
