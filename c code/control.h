@@ -45,33 +45,43 @@ int64_t getDistance();
 
 /* 사용 예시
 int main(){
+    // Initialize controller
     if(initControl()==-1){
         ERR("Cannot initialize controller.");
         return -1;
     }
 
-    int8_t node;
+    int8_t state, node;
+
     while(1){
-        // 노드가 나타날 때까지 움직인다.
+        // Move to any node
         LOG("MOVE");
+        currVelo = destVelo = 0;
+        align();
 
-        //Before
-        node = goUntillNode();
-        
-        //After
+        // Get node type
         state = goUntillNode();
-        node = recognizeNode(state);
+        node  = recognizeNode(state);
 
+        // Make decision
         LOG("TURN");
-        // 만약 왼쪽이 검출되면 왼쪽으로 돈다.
-        if(node==NODE_LEFT) rotate(90);
-        // 만약 오른쪽이 검출되면 오른쪽으로 돈다.
-        else if(node==NODE_RIGHT)rotate(-90);
-        // 그 외의 노드가 나오면 루프 탈출 
+        currVelo = destVelo = 0;
+        if(node==NODE_LEFT)         rotate(90);
+        else if(node==NODE_RIGHT)   rotate(-90);
         else break;
     }
 
-    // 끝냄
+    #define NODE_CASE(NODE) case NODE : LOG(#NODE); break;
+    switch(node){
+        NODE_CASE(NODE_LEFT);
+        NODE_CASE(NODE_RIGHT);
+        NODE_CASE(NODE_CROSS);
+        NODE_CASE(NODE_T);
+        NODE_CASE(NODE_T_LEFT);
+        NODE_CASE(NODE_T_RIGHT);
+        NODE_CASE(NODE_TERMINAL);
+    }
+
     endControl();
     return 0;
 }
