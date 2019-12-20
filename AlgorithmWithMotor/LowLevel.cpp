@@ -65,7 +65,7 @@ Junction LowLevel::CheckNode_Raw()
 
 std::pair<bool, Junction> LowLevel::MoveToNode_Raw()
 {
-	int8_t lowJunc = goUntillNode();
+	int8_t lowJunc = recognizeNode(goUntillNode());
 	if (lowJunc & NODE_LEFT)
 	{
 		RobotJunc.Reset(false, false, false, false);
@@ -86,6 +86,16 @@ std::pair<bool, Junction> LowLevel::MoveToNode_Raw()
 	{
 		RobotJunc.Reset(true, true, true, true);
 		RobotJunc[RobotDir] = false;
+	}
+	else if (lowJunc & NODE_T_RIGHT)
+	{
+		RobotJunc.Reset(true, true, true, true);
+		RobotJunc[TurnLeft(RobotDir)] = false;
+	}
+	else if (lowJunc & NODE_T_LEFT)
+	{
+		RobotJunc.Reset(true, true, true, true);
+		RobotJunc[TurnRight(RobotDir)] = false;
 	}
 	else if (lowJunc & NODE_TERMINAL)
 	{
