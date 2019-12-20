@@ -265,6 +265,10 @@ void rotate(float degree){
     }
 }
 
+int64_t getInstance(){
+    return control->tickC;
+}
+
 int8_t stop(int64_t ticks){
     INTERVAL interval;
     interval.recent = 0;
