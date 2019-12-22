@@ -1,7 +1,7 @@
 #include "LowLevel.h"
 #include "control.h"
 
-Point RobotPos = {0, 0};
+Point RobotPos;
 Direction RobotDir = Direction::North;
 Junction RobotJunc(true, false, false, false);
 
@@ -65,6 +65,7 @@ Junction LowLevel::CheckNode_Raw()
 
 std::pair<bool, Junction> LowLevel::MoveToNode_Raw()
 {
+	int64_t before = getDistance();
 	int8_t lowJunc = recognizeNode(goUntillNode());
 	if (lowJunc & NODE_LEFT)
 	{
@@ -101,6 +102,24 @@ std::pair<bool, Junction> LowLevel::MoveToNode_Raw()
 	{
 		RobotJunc.Reset(false, false, false, false);
 		RobotJunc[ToOpposite(RobotDir)];
+	}
+	int64_t after = getDistance();
+	double l = (double)after-before;
+	
+	switch (RobotDir)
+	{
+	case Direction::North:
+		RobotPos.Y -= l;
+		break;
+	case Direction::South:
+		RobotPos.Y += l;
+		break;
+	case Direction::East:
+		RobotPos.X += l;
+		break;
+	case Direction::West:
+		RobotPos.X -= l;
+		break;
 	}
 
 	return { true, RobotJunc };

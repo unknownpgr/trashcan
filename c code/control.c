@@ -67,6 +67,7 @@ double currVelo = 0;
 
 int main_remote(){
     exec("./comm.o");
+    sleep_ms(100);
     LOG("Server alive : %s",BOOL(control->serverAlive));
 
     double
@@ -470,7 +471,9 @@ int main(){
 
     int8_t state, node;
 
-    while(1){
+    main_remote();
+
+    while(0){
      LOG("MOVE");
         currVelo = destVelo = 0;
         align();

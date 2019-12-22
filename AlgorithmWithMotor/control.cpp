@@ -183,7 +183,6 @@ void align(){
 
 // Move by given ticks. 1 tick = 2PI*WHEEL_RAD/400.
 /*
-
 */
 void moveTicks(int64_t ticks){
     // p-control value
@@ -404,7 +403,7 @@ int initControl(){
     sleep_ms(100);
 
     initControlStruct(control);
-    LOG("Control structure initialized.");
+    LOG("Control structure initialized.")
 
     // Start child process
     exec("./motor.o");
@@ -462,14 +461,14 @@ int8_t recognizeNode(int8_t state){
     return node;
 }
 
-int main(){
+/*int main(){
     if(initControl()==-1){
         ERR("Cannot initialize controller.");
         return -1;
     }
 
     int8_t state, node;
-    
+
     while(1){
      LOG("MOVE");
         currVelo = destVelo = 0;
@@ -497,4 +496,4 @@ int main(){
 
     endControl();
     return 0;
-}
+}*/

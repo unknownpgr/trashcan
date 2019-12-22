@@ -1,8 +1,8 @@
 var com = require('../com');
 var path = require('path');
 
-var sendPath = 'C:/Users/tjdgh/Documents/GitHub/trashcan/server/data';
-var receivePath = 'C:/Users/tjdgh/Documents/GitHub/trashcan/server/data';
+var sendPath = '/home/pi/workspace/webInteract/fromServer';
+var receivePath = '/home/pi/workspace/webInteract/fromAlgo';
 var attr = { interval: 100, maxTryCount: 5 };
 
 module.exports = (app, dir) => {

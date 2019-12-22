@@ -120,7 +120,7 @@ HighLevel::Junction::Junction(bool n, bool s, bool e, bool w)
 	Reset(n, s, e, w);
 }
 
-void HighLevel::Reset(bool n, bool s, bool e, bool w)
+void HighLevel::Junction::Reset(bool n, bool s, bool e, bool w)
 {
 	North = n;
 	South = s;

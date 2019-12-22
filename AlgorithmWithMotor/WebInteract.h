@@ -12,8 +12,8 @@ namespace WebInteract
 	typedef std::pair<CommFromWeb, std::vector<std::string>> DataFromWeb;
 	typedef std::shared_ptr<DataFromWeb> DataFromWebPtr;
 
-	const path Path_ToSend = "C:\\WebInteractTest\\Send";
-	const path Path_ToReceive = "C:\\WebInteractTest\\Receive";
+	const path Path_ToSend = "/home/pi/workspace/webInteract/fromAlgo";
+	const path Path_ToReceive = "/home/pi/workspace/webInteract/fromServer";
 	// 웹으로부터 오는 명령들의 종류를 정의
 
 	void SendData(const std::string& fileName, const std::string& content);

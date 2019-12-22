@@ -2,8 +2,8 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <crtdbg.h>
 #include "RobotAlgorithm.h"
+#include "control.h"
 
 std::string GetGraph1()
 {
@@ -83,7 +83,7 @@ int main()
 	// 디버그용으로 로봇의 위치를 임의로 설정. 실전에서는 쓰일 일 없음.
 	//InitForDebug(1, 1);
 	//Init();
-	
+	initControl();
 	ListenFromWeb();
 	std::cout << "지금부터 웹서버의 파일 명령을 기다림. 프로그램을 종료하려면 아무키나 누르십시오..." << std::endl;
 
@@ -91,8 +91,6 @@ int main()
 
 	StopListening();
 	DeleteNodeData();
-
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	return 0;
 }
