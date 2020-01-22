@@ -2,7 +2,7 @@
 #define _INTERVAL_H
 #include <sys/types.h>
 
-#define NANOSEC     1000000000
+#define NANOSEC 1000000000
 
 // INTERVAL_LOOP interval structure. must be initialized before being used.
 // You muse initialize INTERVAL.recent to 0.
@@ -28,5 +28,12 @@ RUN_TASK(thread,task){
 }
 */
 #define RUN_TASK(thread,task) {static long __td;__td=__time.tv_nsec-(thread).recent;__td = (__td<0)?(__td+NANOSEC):(__td);if(__td>(thread).interval){(thread).recent+=(thread).interval;if((thread).recent>NANOSEC)(thread).recent-=NANOSEC;{task;}}}
+
+// Get interval struct and interval and return interval in second.
+double initInterval(INTERVAL* interval, int64_t nanoSec){
+    interval->recent = 0;
+    interval->interval = nanoSec;
+    return nanoSec*1.0/NANOSEC;
+}
 
 #endif

@@ -22,7 +22,7 @@
 #define TICK2DEG    4.75
 #define TICK_S_W    400                  // Ticks between sensors and wheels
 
-// 
+// 1 tick = 1 step of stepmotor
 void moveTicks(int64_t ticks);
 
 // 

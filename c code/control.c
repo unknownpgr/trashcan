@@ -119,8 +119,10 @@ void updateVelocity(double dt){
 
     // printf("%f, %f\n",currVd,dt);
 
-    ABS_LIM(dtL,LIMDT);
-    ABS_LIM(dtR,LIMDT);
+    if(ABS(dtL)>LIMDT)dtL = 0;
+    if(ABS(dtR)>LIMDT)dtR = 0;
+    // ABS_LIM(dtL,LIMDT);
+    // ABS_LIM(dtR,LIMDT);
 
     control->dtL = (int64_t)dtL;
     control->dtR = (int64_t)dtR;   
@@ -197,26 +199,37 @@ int main_lineTracing(){
 
 // Todo : implement it
 void align(){
-    // p-control value
-    double  pGain    = 10.f;
-    int64_t err = control->position;
-    int     errSign  = SIGN(err);
+    // PI-control value
+    double pGain    = 200;
+    double iGain    = 0.1;
+    double err      = control->position;
+    double errI     = 0;
+    double iirGain  = 0.5;
 
+    // Interval struct
     INTERVAL interval;
-    interval.recent = 0;
-    interval.interval = 100000;
-    double   intervalSec = interval.interval*1.0/NANOSEC; // Interval in sec 
+    double dt = initInterval(&interval,100000);
 
-    destVc = 0;
+    // Loop break control
+    double  breakTime = 0.5;
+    int64_t currentTick = control->tickL;
+    double  stopTime = 0;
 
     INTERVAL_LOOP{
         RUN_TASK(interval,{
-            updateVelocity(intervalSec);
+            updateVelocity(dt);
 
-            // P-control
-            err = control->position;
-            destVd = err*pGain;
-            if(errSign*err<=0)return;
+            // PI-control
+            err = err*iirGain+control->position*(1-iirGain);
+            errI += err;
+            setVelocityByCurvate(0,err*pGain + errI*iGain);
+
+            // Break check
+            if(currentTick!=control->tickL){
+                currentTick=control->tickL;
+                stopTime = 0;
+            }else if(stopTime>=breakTime)break;
+            stopTime+=dt;
         });
     }
 }
@@ -257,10 +270,13 @@ void moveMeter(double meter){
 void rotate(double degree){
     // p-control value
     int64_t destTick = control->tickR+(int64_t)(degree*TICK2DEG);
+    int64_t err = destTick-control->tickR;
+
     double  errorI = 0;
     double  pGain    = -1;
-    double  iGain    = -0.00002;
-    int64_t err = destTick-control->tickR;
+    double  iGain    = -0.00003;
+    // double  errBef;
+
     int     errSign  = SIGN(err);
 
     INTERVAL interval;
@@ -310,11 +326,11 @@ int8_t stop(int64_t ticks){
             error = destDist-control->tickC;
             // if(error<=0)break;
 
-            destVc = error*pGain;
-            // if(destVc<=.5f)break;
+            double t = error*pGain;
+            if(ABS(t)<50)t = 0;
+            setVelocityByCurvate(t,0);
 
             if(currVc<5)break;
-
             accum|=control->sensorState;
         });
     }
@@ -330,7 +346,6 @@ int8_t goUntillNode(){
     interval.recent = 0;
     interval.interval = 1000000;
     double intervalSec = interval.interval*1.0/NANOSEC; // Interval in sec 
-    printf("intervalSec : %f\n",intervalSec);
 
     int i = 0;
 
@@ -448,11 +463,17 @@ int main(){
     // main_lineTracing();
 
     while(1){
+        LOG("ALIGN");
+        align();
+        LOG("Go");
         state = goUntillNode();
-        node = recognizeNode(state);
+        node  = recognizeNode(state);
 
-        if(node==NODE_LEFT) rotate(-180);
-        else rotate(180);
+        LOG("Turn")
+        if(node==NODE_LEFT) rotate(90);
+        if(node==NODE_RIGHT) rotate(-90);
+        if(node==NODE_T) rotate(90);
+        if(node==NODE_CROSS) rotate(-180);
     }
 
     #define NODE_CASE(NODE) case NODE : LOG(#NODE); break;
