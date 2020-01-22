@@ -98,10 +98,11 @@ int main(){
 
         LOG("Client connected!");
         if (-1 == client_socket){
-            ERR("클라이언트 연결 수락 실패\n");
+            ERR("Client connection failed.\n");
             break;
         }
         char flag = 0;
+        
         for(;;){
             if(control->exit)break;
             flag=!flag;
