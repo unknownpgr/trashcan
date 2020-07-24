@@ -2,10 +2,35 @@
 
 <head>
     <title>Trashcan control page</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <script src="./js/jquery-3.4.1.min.js"></script>
 </head>
 
 <body>
-    <div>Test text</div>
+    <div class="title">This is a title text</div>
+    <div>This is a test text</div>
+    <div>
+        <div>
+            <input type="range" id="veloLeft" max="100">
+        </div>
+        <div>
+            <input type="range" id="veloRight" max="100">
+        </div>
+    </div>
+    <script>
+        var t = 0
+        var i = 0
+        setInterval(() => {
+            veloLeft.value = Math.sin(t * 3) * 50 + 50
+            veloRight.value = Math.cos(t * 3) * 50 + 50
+            t += 0.01
+            i += 1
+            if (i > 100) {
+                i = 0
+
+            }
+        }, 10)
+    </script>
 </body>
 
 </html>
