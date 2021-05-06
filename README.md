@@ -1,5 +1,23 @@
 # Line Following Trashcan
 
+## 요약
+
+움직이는 쓰레기통을 만들어보았습니다.
+
+<div style="display:flex;flex-direction:row;justify-content:space-around">
+<img src="imgs/KakaoTalk_20210506_150833942.jpg" width="45%">
+<img src="imgs/KakaoTalk_20210506_150616385-1620281724968.jpg" width="45%">
+</div>
+### Test Videos
+
+아래는 개발 도중 진행하였던 테스트들 영상 링크입니다.
+
+1. [Motor Speed Test](https://youtu.be/60Z-cCqDNXo)
+2. [Fixed Distance Drive Test](https://youtu.be/_C2uZ1Y84mg)
+3. [Turning Test](https://youtu.be/3oYxH0rKlmY)
+4. [Remote Controlled Drive Test](https://youtu.be/yMFtz8GeUnU)
+5. [Line Following Drive Test](https://youtu.be/30XmRnQbsOw)
+
 ## 과제 성립의 배경
 학교 건물과 같은 실내, 혹은 그와 준하는 넓은 공간에서 다수의 쓰레기통이 필요한 경우가 많다. 그런데 쓰레기통을 여러 개 배치하면 관리가 어렵고, 쓰레기통을 적게 배치하면 쓰레기가 넘치는 경우가 많다. 이에 스스로 이동하여 관리가 편리하고 소수의 쓰레기통만으로도 다수가 있는 것 같은 효과를 볼 수 있는 시스템을 제시하고자 한다.
 
@@ -148,7 +166,6 @@ sudo systemctl restart dhcpcd
 ## 작품 평가 및 결론
 - 무턱대고 개발한 것이 아닌 형상관리, Gantt chart 등을 사용한 일정관리 등을 잘 수행하며 개발하였기에 전반적으로 프로젝트 관리가 체계적으로 수행되었고, 또한 여러 사람이 개발했음에도 개발 방향이나 통신 프로토콜등이 잘 설계되어 있었기에 모두 모여서 개발하지 않고 따로 개발할 수 있었다. 특히 각자의 시행착오를 공유 파일에 모두 기록하여 다음 번에 유사한 오류가 발생했을 경우 도움이 되도록 하였다.
 - 다만 작품의 개발 기간이 시험기간과 상당히 겹쳐 일정상 개발의 어려움이 있었다. 그러나 하드웨어 제어 및 모듈화가 체계적으로 잘 되어 있고, 또한 다량의 주석을 달아 놓아 추후에 다시 개발 및 보완이 가능하도록 하였다. 따라서 이번에 추가하지 못한 기능들을 전부 추가하기 된다면 실제 상용화도 가능할 만큼 완성도 높은 작품을 만들 수 있을 것으로 기대된다.
-
 
 
 
